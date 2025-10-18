@@ -3,8 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 90;
 	objects = {
+
+/* Begin PBXBuildFile section */
+		9C05E0CB2EA034AC006FFE4C /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9C05E0CA2EA034AC006FFE4C /* Sparkle */; };
+/* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		9C6DD5C52E8B58AF002590B1 /* PBXContainerItemProxy */ = {
@@ -24,12 +28,18 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		9C6DB3F82E8C592500E7AA2D /* LoginItemHelper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LoginItemHelper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C6DD5B52E8B58AD002590B1 /* CountriesXL.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CountriesXL.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C6DD5C42E8B58AF002590B1 /* CountriesXLTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CountriesXLTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C6DD5CE2E8B58AF002590B1 /* CountriesXLUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CountriesXLUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		9C6DB3F92E8C592500E7AA2D /* LoginItemHelper */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LoginItemHelper;
+			sourceTree = "<group>";
+		};
 		9C6DD5B72E8B58AD002590B1 /* CountriesXL */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = CountriesXL;
@@ -48,26 +58,26 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		9C6DD5B22E8B58AD002590B1 /* Frameworks */ = {
+		9C6DB3F52E8C592500E7AA2D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9C6DD5B22E8B58AD002590B1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				9C05E0CB2EA034AC006FFE4C /* Sparkle in Frameworks */,
+			);
 		};
 		9C6DD5C12E8B58AF002590B1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9C6DD5CB2E8B58AF002590B1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -78,6 +88,7 @@
 				9C6DD5B72E8B58AD002590B1 /* CountriesXL */,
 				9C6DD5C72E8B58AF002590B1 /* CountriesXLTests */,
 				9C6DD5D12E8B58AF002590B1 /* CountriesXLUITests */,
+				9C6DB3F92E8C592500E7AA2D /* LoginItemHelper */,
 				9C6DD5B62E8B58AD002590B1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -88,6 +99,7 @@
 				9C6DD5B52E8B58AD002590B1 /* CountriesXL.app */,
 				9C6DD5C42E8B58AF002590B1 /* CountriesXLTests.xctest */,
 				9C6DD5CE2E8B58AF002590B1 /* CountriesXLUITests.xctest */,
+				9C6DB3F82E8C592500E7AA2D /* LoginItemHelper.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -95,6 +107,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		9C6DB3F72E8C592500E7AA2D /* LoginItemHelper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9C6DB4032E8C592700E7AA2D /* Build configuration list for PBXNativeTarget "LoginItemHelper" */;
+			buildPhases = (
+				9C6DB3F42E8C592500E7AA2D /* Sources */,
+				9C6DB3F52E8C592500E7AA2D /* Frameworks */,
+				9C6DB3F62E8C592500E7AA2D /* Resources */,
+			);
+			buildRules = (
+			);
+			fileSystemSynchronizedGroups = (
+				9C6DB3F92E8C592500E7AA2D /* LoginItemHelper */,
+			);
+			name = LoginItemHelper;
+			productName = LoginItemHelper;
+			productReference = 9C6DB3F82E8C592500E7AA2D /* LoginItemHelper.app */;
+			productType = "com.apple.product-type.application";
+		};
 		9C6DD5B42E8B58AD002590B1 /* CountriesXL */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9C6DD5D82E8B58AF002590B1 /* Build configuration list for PBXNativeTarget "CountriesXL" */;
@@ -105,13 +135,12 @@
 			);
 			buildRules = (
 			);
-			dependencies = (
-			);
 			fileSystemSynchronizedGroups = (
 				9C6DD5B72E8B58AD002590B1 /* CountriesXL */,
 			);
 			name = CountriesXL;
 			packageProductDependencies = (
+				9C05E0CA2EA034AC006FFE4C /* Sparkle */,
 			);
 			productName = CountriesXL;
 			productReference = 9C6DD5B52E8B58AD002590B1 /* CountriesXL.app */;
@@ -134,8 +163,6 @@
 				9C6DD5C72E8B58AF002590B1 /* CountriesXLTests */,
 			);
 			name = CountriesXLTests;
-			packageProductDependencies = (
-			);
 			productName = CountriesXLTests;
 			productReference = 9C6DD5C42E8B58AF002590B1 /* CountriesXLTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -157,8 +184,6 @@
 				9C6DD5D12E8B58AF002590B1 /* CountriesXLUITests */,
 			);
 			name = CountriesXLUITests;
-			packageProductDependencies = (
-			);
 			productName = CountriesXLUITests;
 			productReference = 9C6DD5CE2E8B58AF002590B1 /* CountriesXLUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -173,6 +198,9 @@
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+					9C6DB3F72E8C592500E7AA2D = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
 					9C6DD5B42E8B58AD002590B1 = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
@@ -195,7 +223,10 @@
 			);
 			mainGroup = 9C6DD5AC2E8B58AD002590B1;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
+			packageReferences = (
+				9C05E0C92EA034AC006FFE4C /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
+			preferredProjectObjectVersion = 90;
 			productRefGroup = 9C6DD5B62E8B58AD002590B1 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -203,55 +234,54 @@
 				9C6DD5B42E8B58AD002590B1 /* CountriesXL */,
 				9C6DD5C32E8B58AF002590B1 /* CountriesXLTests */,
 				9C6DD5CD2E8B58AF002590B1 /* CountriesXLUITests */,
+				9C6DB3F72E8C592500E7AA2D /* LoginItemHelper */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		9C6DD5B32E8B58AD002590B1 /* Resources */ = {
+		9C6DB3F62E8C592500E7AA2D /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9C6DD5B32E8B58AD002590B1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
 		};
 		9C6DD5C22E8B58AF002590B1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9C6DD5CC2E8B58AF002590B1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		9C6DD5B12E8B58AD002590B1 /* Sources */ = {
+		9C6DB3F42E8C592500E7AA2D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9C6DD5B12E8B58AD002590B1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
 		};
 		9C6DD5C02E8B58AF002590B1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9C6DD5CA2E8B58AF002590B1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
 			files = (
 			);
-			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
@@ -269,7 +299,99 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		9C6DD5D62E8B58AF002590B1 /* Debug */ = {
+		9C6DB4042E8C592700E7AA2D /* Debug configuration for PBXNativeTarget "LoginItemHelper" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8NPYWSGZKN;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.8NPYWSGZKN.CountriesXL-LoginItem.LoginItemHelper";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		9C6DB4052E8C592700E7AA2D /* Release configuration for PBXNativeTarget "LoginItemHelper" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8NPYWSGZKN;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.8NPYWSGZKN.CountriesXL-LoginItem.LoginItemHelper";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		9C6DD5D62E8B58AF002590B1 /* Debug configuration for PBXProject "CountriesXL" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -331,7 +453,7 @@
 			};
 			name = Debug;
 		};
-		9C6DD5D72E8B58AF002590B1 /* Release */ = {
+		9C6DD5D72E8B58AF002590B1 /* Release configuration for PBXProject "CountriesXL" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -385,19 +507,40 @@
 			};
 			name = Release;
 		};
-		9C6DD5D92E8B58AF002590B1 /* Debug */ = {
+		9C6DD5D92E8B58AF002590B1 /* Debug configuration for PBXNativeTarget "CountriesXL" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8NPYWSGZKN;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_MOVIES_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_MUSIC_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readwrite;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CountriesXL/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CountriesXL;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
+				INFOPLIST_KEY_NSDownloadsFolderUsageDescription = "This app will download any mods, tools, and other resources for city-building games.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © TylerAustin";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app needs your location while in use to provide location-aware features.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -406,8 +549,7 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -418,30 +560,52 @@
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Debug;
 		};
-		9C6DD5DA2E8B58AF002590B1 /* Release */ = {
+		9C6DD5DA2E8B58AF002590B1 /* Release configuration for PBXNativeTarget "CountriesXL" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 8NPYWSGZKN;
 				ENABLE_APP_SANDBOX = YES;
+				ENABLE_FILE_ACCESS_DOWNLOADS_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_MOVIES_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_MUSIC_FOLDER = readwrite;
+				ENABLE_FILE_ACCESS_PICTURE_FOLDER = readwrite;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = YES;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CountriesXL/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CountriesXL;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.entertainment";
+				INFOPLIST_KEY_NSDownloadsFolderUsageDescription = "This app will download any mods, tools, and other resources for city-building games.";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © TylerAustin";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "This app needs your location while in use to provide location-aware features.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -450,8 +614,7 @@
 				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
@@ -462,18 +625,19 @@
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 26.0;
 			};
 			name = Release;
 		};
-		9C6DD5DC2E8B58AF002590B1 /* Debug */ = {
+		9C6DD5DC2E8B58AF002590B1 /* Debug configuration for PBXNativeTarget "CountriesXLTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -499,7 +663,7 @@
 			};
 			name = Debug;
 		};
-		9C6DD5DD2E8B58AF002590B1 /* Release */ = {
+		9C6DD5DD2E8B58AF002590B1 /* Release configuration for PBXNativeTarget "CountriesXLTests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -525,7 +689,7 @@
 			};
 			name = Release;
 		};
-		9C6DD5DF2E8B58AF002590B1 /* Debug */ = {
+		9C6DD5DF2E8B58AF002590B1 /* Debug configuration for PBXNativeTarget "CountriesXLUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -550,7 +714,7 @@
 			};
 			name = Debug;
 		};
-		9C6DD5E02E8B58AF002590B1 /* Release */ = {
+		9C6DD5E02E8B58AF002590B1 /* Release configuration for PBXNativeTarget "CountriesXLUITests" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -578,43 +742,66 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		9C6DB4032E8C592700E7AA2D /* Build configuration list for PBXNativeTarget "LoginItemHelper" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9C6DB4042E8C592700E7AA2D /* Debug configuration for PBXNativeTarget "LoginItemHelper" */,
+				9C6DB4052E8C592700E7AA2D /* Release configuration for PBXNativeTarget "LoginItemHelper" */,
+			);
+			defaultConfigurationName = Release;
+		};
 		9C6DD5B02E8B58AD002590B1 /* Build configuration list for PBXProject "CountriesXL" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9C6DD5D62E8B58AF002590B1 /* Debug */,
-				9C6DD5D72E8B58AF002590B1 /* Release */,
+				9C6DD5D62E8B58AF002590B1 /* Debug configuration for PBXProject "CountriesXL" */,
+				9C6DD5D72E8B58AF002590B1 /* Release configuration for PBXProject "CountriesXL" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		9C6DD5D82E8B58AF002590B1 /* Build configuration list for PBXNativeTarget "CountriesXL" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9C6DD5D92E8B58AF002590B1 /* Debug */,
-				9C6DD5DA2E8B58AF002590B1 /* Release */,
+				9C6DD5D92E8B58AF002590B1 /* Debug configuration for PBXNativeTarget "CountriesXL" */,
+				9C6DD5DA2E8B58AF002590B1 /* Release configuration for PBXNativeTarget "CountriesXL" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		9C6DD5DB2E8B58AF002590B1 /* Build configuration list for PBXNativeTarget "CountriesXLTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9C6DD5DC2E8B58AF002590B1 /* Debug */,
-				9C6DD5DD2E8B58AF002590B1 /* Release */,
+				9C6DD5DC2E8B58AF002590B1 /* Debug configuration for PBXNativeTarget "CountriesXLTests" */,
+				9C6DD5DD2E8B58AF002590B1 /* Release configuration for PBXNativeTarget "CountriesXLTests" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		9C6DD5DE2E8B58AF002590B1 /* Build configuration list for PBXNativeTarget "CountriesXLUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9C6DD5DF2E8B58AF002590B1 /* Debug */,
-				9C6DD5E02E8B58AF002590B1 /* Release */,
+				9C6DD5DF2E8B58AF002590B1 /* Debug configuration for PBXNativeTarget "CountriesXLUITests" */,
+				9C6DD5E02E8B58AF002590B1 /* Release configuration for PBXNativeTarget "CountriesXLUITests" */,
 			);
-			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		9C05E0C92EA034AC006FFE4C /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		9C05E0CA2EA034AC006FFE4C /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 9C05E0C92EA034AC006FFE4C /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9C6DD5AD2E8B58AD002590B1 /* Project object */;
 }
