@@ -1,0 +1,78 @@
+/* French (France) Localizations */
+"tab.general" = "Général";
+"tab.appearance" = "Apparence";
+"tab.privacy" = "Confidentialité";
+"tab.notifications" = "Notifications";
+"tab.pwaManifest" = "Manifeste PWA";
+"tab.pwaSetup" = "Configuration PWA";
+"tab.account" = "Compte";
+"tab.advanced" = "Avancé";
+"tab.experimental" = "Expérimental";
+"tab.downloads" = "Téléchargements";
+"tab.updates" = "Mises à jour";
+
+"settings.title" = "Préférences";
+"search.prompt" = "Rechercher dans les réglages";
+
+"button.ok" = "OK";
+"button.cancel" = "Annuler";
+"button.apply" = "Appliquer";
+"button.copyDetails" = "Copier les détails";
+
+"alert.apply.failed.title" = "Impossible d'appliquer les réglages";
+
+"file.create.title" = "Créer le dossier ?";
+"file.create.info" = "Le dossier \"%@\" n'existe pas. Voulez-vous le créer ?";
+"file.create.create" = "Créer";
+"file.create.cancel" = "Annuler";
+
+/* General keywords */
+"general.autoplay" = "Lecture automatique";
+"general.startAtLogin" = "Démarrer à la connexion";
+"general.languageRegion" = "Langue / Région";
+"general.downloadLocation" = "Emplacement de téléchargement";
+"general.resetDefaults" = "Réinitialiser";
+"updates.openPreferences" = "Ouvrir les préférences de mise à jour";
+
+/* Appearance */
+"color.scheme" = "Schéma de couleur";
+"accent.color" = "Couleur d'accent";
+"font.size" = "Taille de la police";
+"window.transparency" = "Transparence de la fenêtre";
+
+/* Privacy */
+"privacy.pushNotifications" = "Notifications push";
+"privacy.location" = "Localisation";
+"privacy.disableAds" = "Désactiver les publicités";
+"privacy.disableVideoAds" = "Désactiver les publicités vidéo";
+"privacy.biometric" = "Verrouillage biométrique";
+"privacy.resetApp" = "Réinitialiser l’application…";
+
+/* Notifications */
+"notification.sound" = "Son de notification";
+"notification.badge" = "Badge de l'application";
+"notification.pushRouteFilter" = "Notifications pour les mises à jour des filtres d'API";
+
+/* Advanced */
+"advanced.customDataDirectory" = "Répertoire de données personnalisé";
+"advanced.developerMode" = "Mode développeur";
+"advanced.proxyConfiguration" = "Configuration du proxy";
+"api.route.filters" = "Filtres de routes API";
+
+/* Move to Applications */
+"move.title" = "¿Mover a Aplicaciones?";
+"move.info.standard" = "¿Desea mover esta app a la carpeta Aplicaciones?";
+"move.info.dmg" = "Parece que esta app se está ejecutando desde una imagen de disco montada. Se recomienda moverla a la carpeta Aplicaciones.";
+"move.info.readonlySuffix" = "Nota: el volumen actual es de solo lectura; la app se copiará en lugar de moverse.";
+"move.button.move" = "Mover a Aplicaciones";
+"move.button.skip" = "Mantener aquí";
+"move.button.dontAsk" = "No preguntar de nuevo";
+"move.checkbox.reveal" = "Mostrar en el Finder después de mover";
+
+"error.title.unableToMove" = "No se pudo mover la app";
+"error.info.unableToMove_fmt" = "No se pudo mover a %@: %@";
+
+"generic.ok" = "Aceptar";
+"general.openLanguageRegion" = "Langue et région";
+"privacy.resetApp.help" = "Efface les préférences et les données en cache. Il peut être nécessaire de relancer l'application.";
+"privacy.disableVideoAds.help" = "Si toutes les publicités sont désactivées, les publicités vidéo sont également désactivées.";

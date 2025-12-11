@@ -1,0 +1,74 @@
+/* German (Germany) Localizations */
+"tab.general" = "Allgemein";
+"tab.appearance" = "Darstellung";
+"tab.privacy" = "Datenschutz";
+"tab.notifications" = "Mitteilungen";
+"tab.pwaManifest" = "PWA-Manifest";
+"tab.pwaSetup" = "PWA-Einrichtung";
+"tab.account" = "Konto";
+"tab.advanced" = "Erweitert";
+"tab.experimental" = "Experimentell";
+"tab.downloads" = "Downloads";
+"tab.updates" = "Aktualisierungen";
+
+"settings.title" = "Einstellungen";
+"search.prompt" = "Einstellungen durchsuchen";
+
+"button.ok" = "OK";
+"button.cancel" = "Abbrechen";
+"button.apply" = "Anwenden";
+"button.copyDetails" = "Details kopieren";
+
+"alert.apply.failed.title" = "Einstellungen konnten nicht übernommen werden";
+
+"file.create.title" = "Ordner erstellen?";
+"file.create.info" = "Der Ordner \"%@\" existiert nicht. Möchten Sie ihn erstellen?";
+"file.create.create" = "Erstellen";
+"file.create.cancel" = "Abbrechen";
+
+/* General keywords */
+"general.autoplay" = "Autoplay";
+"general.startAtLogin" = "Beim Anmelden starten";
+"general.languageRegion" = "Sprache / Region";
+"general.downloadLocation" = "Speicherort für Downloads";
+"general.resetDefaults" = "Auf Standard zurücksetzen";
+"updates.openPreferences" = "Update-Einstellungen öffnen";
+
+/* Appearance */
+"color.scheme" = "Farbschema";
+"accent.color" = "Akzentfarbe";
+"font.size" = "Schriftgröße";
+"window.transparency" = "Fenstertransparenz";
+
+/* Privacy */
+"privacy.pushNotifications" = "Push-Benachrichtigungen";
+"privacy.location" = "Ort";
+"privacy.disableAds" = "Werbung deaktivieren";
+"privacy.disableVideoAds" = "Videowerbung deaktivieren";
+"privacy.biometric" = "Biometrische Sperre";
+
+/* Notifications */
+"notification.sound" = "Benachrichtigungston";
+"notification.badge" = "App-Symbol-Badge";
+"notification.pushRouteFilter" = "Push-Benachrichtigungen für Routenfilter-Updates";
+
+/* Advanced */
+"advanced.customDataDirectory" = "Benutzerdefiniertes Datenverzeichnis";
+"advanced.developerMode" = "Entwicklermodus";
+"advanced.proxyConfiguration" = "Proxy-Konfiguration";
+"api.route.filters" = "API-Routenfilter";
+
+/* Move to Applications */
+"move.title" = "In Programme verschieben?";
+"move.info.standard" = "Möchten Sie diese App in den Ordner Programme verschieben?";
+"move.info.dmg" = "Diese App scheint von einem gemounteten Disk-Image ausgeführt zu werden. Es wird empfohlen, sie in den Ordner Programme zu verschieben.";
+"move.info.readonlySuffix" = "Hinweis: Das aktuelle Volume ist schreibgeschützt; die App wird kopiert statt verschoben.";
+"move.button.move" = "In Programme verschieben";
+"move.button.skip" = "Hier belassen";
+"move.button.dontAsk" = "Nicht mehr fragen";
+"move.checkbox.reveal" = "Nach dem Verschieben im Finder anzeigen";
+
+"error.title.unableToMove" = "App konnte nicht verschoben werden";
+"error.info.unableToMove_fmt" = "Verschieben nach %@ fehlgeschlagen: %@";
+
+"generic.ok" = "OK";
