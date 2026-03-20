@@ -30,7 +30,7 @@ enum AppearanceChoice: String, CaseIterable {
 
 // Root content for macOS app with a modern sidebar + toolbar and search.
 struct ContentView: View {
-    @StateObject private var appState = AppState()
+    @EnvironmentObject private var appState: AppState
     @State private var selection: SidebarItem? = .resources
     @State private var searchText: String = ""
     @State private var activeSheet: ActiveSheet? = nil
@@ -66,24 +66,47 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            let sidebarItems: [SidebarItem] = [.home, .forums, .resources, .media]
-            List(sidebarItems, selection: $selection) { item in
-                NavigationLink(value: item) {
-                    HStack(spacing: 6) {
-                        Label(item.title, systemImage: item.systemImage)
-                        if !(networkMonitor.isConnected ?? true) {
-                            Image(systemName: "wifi.slash").foregroundStyle(.secondary)
-                        }
+            sidebarView
+        } detail: {
+            detailView
+        }
+    }
+
+    private var sidebarView: some View {
+        let sidebarItems: [SidebarItem] = [.home, .forums, .resources, .media]
+        return List(sidebarItems, selection: $selection) { item in
+            NavigationLink(value: item) {
+                HStack(spacing: 6) {
+                    Label(item.title, systemImage: item.systemImage)
+                    if !(networkMonitor.isConnected ?? true) {
+                        Image(systemName: "wifi.slash").foregroundStyle(.secondary)
                     }
                 }
             }
-            .navigationSplitViewColumnWidth(min: 200, ideal: 240)
-            .navigationTitle("CountriesXL")
-        } detail: {
-            ZStack {
-                detailContent
-                overlayView()
-            }
+        }
+        .navigationSplitViewColumnWidth(min: 200, ideal: 240)
+        .navigationTitle("CountriesXL")
+    }
+
+    private var detailView: some View {
+        applyAppearanceModifiers(
+            applyNotificationModifiers(
+                applySheetModifiers(
+                    applyPrimaryModifiers(detailViewBase)
+                )
+            )
+        )
+    }
+
+    private var detailViewBase: some View {
+        ZStack {
+            detailContent
+            overlayView()
+        }
+    }
+
+    private func applyPrimaryModifiers<V: View>(_ view: V) -> some View {
+        view
             .environmentObject(appState)
             .toolbar { toolbarContent }
             .searchable(text: $searchText, placement: .toolbar, prompt: Text("Search resources, media, threads, users"))
@@ -95,6 +118,10 @@ struct ContentView: View {
                 networkMonitor.start()
                 Task { await boardStatus.refresh() }
             }
+    }
+
+    private func applySheetModifiers<V: View>(_ view: V) -> some View {
+        view
             .sheet(isPresented: $appState.showSettings) {
                 SettingsView()
                     .environmentObject(appState)
@@ -133,6 +160,10 @@ struct ContentView: View {
                     .padding()
                 }
             }
+    }
+
+    private func applyNotificationModifiers<V: View>(_ view: V) -> some View {
+        view
             // Removed sheet for showConnectivityDiagnostics here
             .onReceive(NotificationCenter.default.publisher(for: .openDownloads)) { _ in
                 activeSheet = .downloads
@@ -142,6 +173,9 @@ struct ContentView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .openSignIn)) { _ in
                 activeSheet = .auth
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openSettings)) { _ in
+                appState.showSettings = true
             }
             .onReceive(NotificationCenter.default.publisher(for: .openMembership)) { _ in
                 #if os(macOS)
@@ -191,6 +225,10 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: .openTour)) { _ in
                 activeSheet = .tour
             }
+    }
+
+    private func applyAppearanceModifiers<V: View>(_ view: V) -> some View {
+        view
             .preferredColorScheme(preferredScheme)
             .popover(isPresented: $showSignInPopover, attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
                 SignInPopoverCard(
@@ -200,10 +238,7 @@ struct ContentView: View {
                 )
             }
             .tint(accentTint)
-        }
-        .environmentObject(appState)
     }
-
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .automatic) {
@@ -554,6 +589,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 
 #Preview {
     ContentView()
+        .environmentObject(AppState())
 }
 
 // MARK: AlertsSheet

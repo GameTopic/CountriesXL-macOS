@@ -4,18 +4,31 @@ import Foundation
 struct XenForoAPI {
     let baseURL = URL(string: "https://cities-mods.com/api")!
 
-    // Provided by user (consider moving out of source for production)
-    private let apiKey: String = "9VGBbWI1Cvlrfg6uEPHxJ5q3CUxoi-MJ"
+    // API key should be provided via Info.plist (XenForoAPIKey) or another secure mechanism.
+    private var apiKey: String? {
+        if let key = Bundle.main.object(forInfoDictionaryKey: "XenForoAPIKey") as? String,
+           !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return key
+        }
+        return nil
+    }
     let loginURL = URL(string: "https://cities-mods.com/login")!
     let registerURL = URL(string: "https://cities-mods.com/register")!
 
-    enum APIError: Error, LocalizedError { case invalidResponse, serverError(Int, Data?), decodingFailed(Error), badRequest
+    enum APIError: Error, LocalizedError {
+        case invalidResponse
+        case serverError(Int, Data?)
+        case decodingFailed(Error)
+        case badRequest
+        case missingApiKey
+
         var errorDescription: String? {
             switch self {
             case .invalidResponse: return "Invalid response"
             case .serverError(let code, _): return "Server error: \(code)"
             case .decodingFailed(let err): return "Decoding failed: \(err.localizedDescription)"
             case .badRequest: return "Bad request (400). Check required parameters."
+            case .missingApiKey: return "Missing API key. Add XenForoAPIKey to Info.plist."
             }
         }
     }
@@ -34,6 +47,7 @@ struct XenForoAPI {
         var req = URLRequest(url: components.url!)
         req.httpMethod = method.rawValue
         // XenForo API key header
+        guard let apiKey else { throw APIError.missingApiKey }
         req.addValue(apiKey, forHTTPHeaderField: "XF-Api-Key")
         // Optional OAuth2 bearer (when available in future)
         if let token = accessToken { req.addValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
@@ -356,6 +370,32 @@ struct XenForoAPI {
     }
 }
 
+// MARK: - Diagnostics
+
+extension XenForoAPI {
+    func fetchResourcesStatus() async throws -> Int {
+        let prefix = UserDefaults.standard.string(forKey: "xf_resource_route_prefix") ?? "resources"
+        return try await fetchStatus(path: prefix)
+    }
+
+    func fetchMediaStatus() async throws -> Int {
+        let prefix = UserDefaults.standard.string(forKey: "xf_media_route_prefix") ?? "media"
+        return try await fetchStatus(path: prefix)
+    }
+
+    func fetchThreadsStatus() async throws -> Int {
+        let prefix = UserDefaults.standard.string(forKey: "xf_thread_route_prefix") ?? "threads"
+        return try await fetchStatus(path: prefix)
+    }
+
+    private func fetchStatus(path: String) async throws -> Int {
+        let req = try request(path: path)
+        let (_, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse else { throw APIError.invalidResponse }
+        return http.statusCode
+    }
+}
+
 // MARK: - Models
 
 struct XFResource: Identifiable, Codable, Hashable {
@@ -372,6 +412,19 @@ struct XFResource: Identifiable, Codable, Hashable {
     var downloadCount: Int?
     var viewCount: Int?
     var tagLine: String?
+    var versionString: String?
+    var authorName: String?
+    var summary: String?
+    var descriptionBBCode: String?
+    var installInstructions: String?
+    var viewURL: URL?
+    var screenshots: [URL] = []
+    var fields: [XFResourceField] = []
+    var updates: [XFResourceUpdate] = []
+    var reviews: [XFResourceReview] = []
+    var videos: [XFResourceVideo] = []
+    var relatedResources: [XFResource] = []
+    var attachmentURLs: [String: URL] = [:]
 
     enum CodingKeys: String, CodingKey {
         case id = "resource_id"
@@ -387,7 +440,58 @@ struct XFResource: Identifiable, Codable, Hashable {
         case downloadCount = "download_count"
         case viewCount = "view_count"
         case tagLine = "tag_line"
+        case versionString = "version_string"
+        case authorName = "username"
+        case summary = "description"
+        case descriptionBBCode = "message"
+        case installInstructions = "install_instructions"
+        case viewURL = "view_url"
+        case screenshots
+        case fields
+        case updates
+        case reviews
+        case videos
+        case relatedResources = "related_resources"
     }
+}
+
+struct XFResourceField: Identifiable, Codable, Hashable {
+    var id: String { key }
+    let key: String
+    let title: String
+    let value: String
+    let displayLocation: String?
+    let ownTabTitle: String?
+    let description: String?
+    let displayOrder: Int?
+    let imageURLs: [URL]
+}
+
+struct XFResourceUpdate: Identifiable, Codable, Hashable {
+    let id: Int
+    let title: String
+    let versionString: String?
+    let message: String
+    let date: Date?
+    let downloadURL: URL?
+    let attachmentURLs: [String: URL]
+    let imageURLs: [URL]
+    let videoURLs: [URL]
+}
+
+struct XFResourceReview: Identifiable, Codable, Hashable {
+    let id: Int
+    let author: String
+    let title: String?
+    let message: String
+    let rating: Double?
+    let date: Date?
+}
+
+struct XFResourceVideo: Identifiable, Codable, Hashable {
+    var id: String { url.absoluteString }
+    let title: String
+    let url: URL
 }
 
 struct XFThread: Identifiable, Codable, Hashable {
@@ -529,6 +633,7 @@ struct XFPost: Identifiable, Codable, Hashable {
     var position: Int?
     var last_edit_date: Int?
     var reaction_score: Int?
+    var attachmentURLs: [String: URL] = [:]
 
     enum CodingKeys: String, CodingKey {
         case id = "post_id", thread_id, user_id, username, post_date, message, message_parsed, is_first_post, is_last_post, is_unread, can_edit, can_soft_delete, can_hard_delete, can_react, can_view_attachments, view_url, is_reacted_to, visitor_reaction_id, vote_score, can_content_vote, allowed_content_vote_types, is_content_voted, visitor_content_vote, attach_count, warning_message, position, last_edit_date, reaction_score
@@ -581,4 +686,3 @@ struct AnyEncodable: Encodable {
     init(_ wrapped: Encodable) { self._encode = wrapped.encode }
     func encode(to encoder: Encoder) throws { try _encode(encoder) }
 }
-

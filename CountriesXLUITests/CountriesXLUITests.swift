@@ -34,8 +34,12 @@ final class CountriesXLUITests: XCTestCase {
     @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
+        let app = XCUIApplication()
         measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
+            if app.state == .runningForeground {
+                app.terminate()
+            }
+            app.launch()
         }
     }
 }

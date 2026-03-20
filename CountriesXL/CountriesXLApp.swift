@@ -58,19 +58,16 @@ struct CountriesXLApp: App {
                     AuthManager.shared.handleIncomingURL(url)
                 }
                 .task {
-                    LocationService.shared.requestAuthorizationAndStart()
+                    if #available(macOS 26.0, *) {
+                        LocationService.shared.requestAuthorizationAndStart()
+                    }
                 }
         }
         .modelContainer(sharedModelContainer)
 #if os(macOS)
         .commands {
             AppCommands(appState: appState)
-        }
-#endif
-#if os(macOS)
-        Settings {
-            SettingsView()
-                .environmentObject(appState)
+            HelpCommands()
         }
 #endif
     }
@@ -83,6 +80,13 @@ private struct AppCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .saveItem) {
+        }
+        
+        CommandGroup(replacing: .appSettings) {
+            Button("Settings…") {
+                NotificationCenter.default.post(name: .openSettings, object: nil)
+            }
+            .keyboardShortcut(",", modifiers: .command)
         }
         
         CommandGroup(replacing: .printItem) {
@@ -150,6 +154,7 @@ extension Notification.Name {
     static let openDownloads = Notification.Name("CountriesXL.openDownloads")
     static let openProfile = Notification.Name("CountriesXL.openProfile")
     static let openSignIn = Notification.Name("CountriesXL.openSignIn")
+    static let openSettings = Notification.Name("CountriesXL.openSettings")
     static let printDocument = Notification.Name("CountriesXL.printDocument")
     static let pageSetup = Notification.Name("CountriesXL.pageSetup")
     static let printCurrentView = Notification.Name("CountriesXL.printCurrentView")

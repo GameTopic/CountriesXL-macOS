@@ -3,16 +3,15 @@ import Foundation
 import Combine
 import ObjectiveC
 
-private final class BundleKey: NSObject {}
-private let bundleKey: UnsafeMutableRawPointer = Unmanaged.passUnretained(BundleKey()).toOpaque()
-
 private final class BundleLanguageProxy: Bundle, @unchecked Sendable {
+    nonisolated(unsafe) fileprivate static var bundleKey: UInt8 = 0
+
     nonisolated override init?(path: String) {
         super.init(path: path)
     }
 
     nonisolated override func localizedString(forKey key: String, value: String?, table tableName: String?) -> String {
-        if let langBundle = objc_getAssociatedObject(self, bundleKey) as? Bundle {
+        if let langBundle = objc_getAssociatedObject(self, &BundleLanguageProxy.bundleKey) as? Bundle {
             return langBundle.localizedString(forKey: key, value: value, table: tableName)
         }
         return super.localizedString(forKey: key, value: value, table: tableName)
@@ -36,9 +35,9 @@ extension Bundle {
         if let code = code, !code.isEmpty,
            let path = Bundle.main.path(forResource: code, ofType: "lproj"),
            let langBundle = Bundle(path: path) {
-            objc_setAssociatedObject(Bundle.main, bundleKey, langBundle, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(Bundle.main, &BundleLanguageProxy.bundleKey, langBundle, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         } else {
-            objc_setAssociatedObject(Bundle.main, bundleKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+            objc_setAssociatedObject(Bundle.main, &BundleLanguageProxy.bundleKey, nil, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
         }
     }
 }

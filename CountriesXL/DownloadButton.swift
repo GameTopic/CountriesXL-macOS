@@ -8,6 +8,7 @@ public struct DownloadButton: View {
     private let url: URL
     private let style: ButtonStyleType
     private var urlProvider: (() async throws -> URL)? = nil
+    private var requestProvider: (() async throws -> URLRequest)? = nil
 
     public enum ButtonStyleType { case bordered, borderedProminent, plain }
 
@@ -33,6 +34,14 @@ public struct DownloadButton: View {
         self.url = URL(string: "https://cities-mods.com")! // placeholder; will be replaced by urlProvider at runtime
         self.style = style
         self.urlProvider = urlProvider
+    }
+
+    public init(id: Int, title: String, style: ButtonStyleType = .bordered, requestProvider: @escaping () async throws -> URLRequest) {
+        self.id = id
+        self.title = title
+        self.url = URL(string: "https://cities-mods.com")!
+        self.style = style
+        self.requestProvider = requestProvider
     }
 
     public var body: some View {
@@ -71,15 +80,19 @@ public struct DownloadButton: View {
     private func start() {
         Task {
             do {
-                let actualURL: URL
-                if let provider = urlProvider {
-                    actualURL = try await provider()
+                NotificationCenter.default.post(name: .openDownloads, object: nil)
+                if let requestProvider {
+                    let request = try await requestProvider()
+                    _ = try await manager.startDownload(id: id, title: title, request: request, displayURL: request.url)
                 } else {
-                    actualURL = url
+                    let actualURL: URL
+                    if let provider = urlProvider {
+                        actualURL = try await provider()
+                    } else {
+                        actualURL = url
+                    }
+                    _ = try await manager.startDownload(id: id, title: title, url: actualURL)
                 }
-                // Prefer the manager's async start API if available in this target; otherwise enqueue.
-                // The call below assumes startDownload is available; if not, you can switch to enqueue in your target.
-                _ = try? await manager.startDownload(id: id, title: title, url: actualURL)
             } catch {
                 // Silently ignore or log error as needed
             }

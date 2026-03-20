@@ -2,20 +2,31 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>SUBetaFeedURL</key>
-	<string>https://cities-mods.com/support/config/macOS/appcast.xml</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.8NPYWSGZKN.countriesxl</string>
+			<string>com.8NPYWSGZKN.CountriesXLUI</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>countriesxl</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string></string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>com.8NPYWSGZKN.CountriesXLUI</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>CountriesXL://oauth</string>
+			</array>
+		</dict>
+		<dict/>
 	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
@@ -32,9 +43,27 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>SUBetaFeedURL</key>
+	<string>https://cities-mods.com/support/config/macOS/appcast.xml</string>
 	<key>SUFeedURL</key>
 	<string>https://cities-mods.com/support/config/macOS/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string></string>
+	<key>XenForoAPIKey</key>
+	<string>9VGBbWI1Cvlrfg6uEPHxJ5q3CUxoi-MJ</string>
+	<key>XenForoOAuthAuthURL</key>
+	<string>https://cities-mods.com/oauth2/authorize</string>
+	<key>XenForoOAuthClientID</key>
+	<string>1316758746340916</string>
+	<key>XenForoOAuthClientSecret</key>
+	<string>3fy1zCUu9_KE7k6-3sKi2JFLqfObyDJ_</string>
+	<key>XenForoOAuthRedirectURI</key>
+	<string>https://cities-mods.com/connected_account.php</string>
+	<key>XenForoOAuthRevokeURL</key>
+	<string>https://cities-mods.com/api/oauth2/revoke</string>
+	<key>XenForoOAuthScope</key>
+	<string>read write</string>
+	<key>XenForoOAuthTokenURL</key>
+	<string>https://cities-mods.com/api/oauth2/token</string>
 </dict>
 </plist>

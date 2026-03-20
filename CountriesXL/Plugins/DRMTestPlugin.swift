@@ -23,6 +23,6 @@ public enum DRMTestPlugin {
 
     // Register presence so UI can discover this capability even when compiled in
     private static let _registered: Void = {
-        PluginManager.shared.registerPresence(name: "DRMTestPlugin")
+        PluginHostManager.shared.registerPresence(name: "DRMTestPlugin")
     }()
 }

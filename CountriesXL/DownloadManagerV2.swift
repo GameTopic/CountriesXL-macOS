@@ -19,10 +19,12 @@ final class DownloadManagerV2: ObservableObject {
     @Published private(set) var downloads: [Int: DownloadState] = [:]
     private var idToTitle: [Int: String] = [:]
     private var idToURL: [Int: URL] = [:]
+    private var idToRequest: [Int: URLRequest] = [:]
     private var completionHandlers: [Int: (Result<URL, Error>) -> Void] = [:]
     private var idToCreated: [Int: Date] = [:]
     private var idToLastError: [Int: String] = [:]
     private var idToFileSize: [Int: Int64] = [:]
+    private var progressObservations: [Int: NSKeyValueObservation] = [:]
 
     private let session: URLSession
     
@@ -80,6 +82,25 @@ final class DownloadManagerV2: ObservableObject {
         self.session = URLSession(configuration: config, delegate: nil, delegateQueue: nil)
         restoreMeta()
     }
+
+    private func destinationDirectory() throws -> (folder: URL, scopedURL: URL?, settings: SettingsStore?) {
+        let settings = SettingsStore()
+        let baseFolder: URL
+        let scopedURL: URL?
+        if let configuredFolder = settings.beginAccessingDownloadFolder() {
+            baseFolder = configuredFolder
+            scopedURL = configuredFolder
+        } else {
+            baseFolder = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
+            scopedURL = nil
+        }
+
+        let folder = baseFolder.appendingPathComponent("CountriesXL", isDirectory: true)
+        if !FileManager.default.fileExists(atPath: folder.path) {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        }
+        return (folder, scopedURL, scopedURL == nil ? nil : settings)
+    }
     
     func pauseDownload(id: Int) {
         guard let state = downloads[id], state.isDownloading, let task = state.task else { return }
@@ -98,22 +119,26 @@ final class DownloadManagerV2: ObservableObject {
         downloads[id]?.task?.cancel()
         downloads[id] = nil
         idToURL[id] = nil
+        idToRequest[id] = nil
         idToTitle[id] = nil
         idToCreated[id] = nil
         idToLastError[id] = nil
         idToFileSize[id] = nil
         completionHandlers[id] = nil
+        progressObservations[id] = nil
         persistMeta()
     }
     
     func clearDownload(id: Int) {
         downloads[id] = nil
         idToURL[id] = nil
+        idToRequest[id] = nil
         idToTitle[id] = nil
         idToCreated[id] = nil
         idToLastError[id] = nil
         idToFileSize[id] = nil
         completionHandlers[id] = nil
+        progressObservations[id] = nil
         persistMeta()
     }
     
@@ -132,6 +157,12 @@ final class DownloadManagerV2: ObservableObject {
     // MARK: - Async/Await APIs
     
     func startDownload(id: Int, title: String, url: URL) async throws -> URL {
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        return try await startDownload(id: id, title: title, request: request, displayURL: url)
+    }
+
+    func startDownload(id: Int, title: String, request: URLRequest, displayURL: URL? = nil) async throws -> URL {
         if downloads[id]?.isDownloading == true {
             if let fileURL = downloads[id]?.fileURL {
                 return fileURL
@@ -146,7 +177,8 @@ final class DownloadManagerV2: ObservableObject {
         }
         
         idToTitle[id] = title
-        idToURL[id] = url
+        idToURL[id] = displayURL ?? request.url
+        idToRequest[id] = request
         idToCreated[id] = Date()
         persistMeta()
         
@@ -165,8 +197,8 @@ final class DownloadManagerV2: ObservableObject {
             self.completionHandlers[id] = { result in
                 continuation.resume(with: result)
             }
-            let task = self.session.downloadTask(with: url) { [weak self] tempURL, _, error in
-                Task { await self?.handleDownloadCompletion(id: id, tempURL: tempURL, error: error) }
+            let task = self.session.downloadTask(with: request) { [weak self] tempURL, response, error in
+                Task { await self?.handleDownloadCompletion(id: id, tempURL: tempURL, response: response, error: error) }
             }
             self.downloads[id] = DownloadState(progress: 0.0, isDownloading: true, isPaused: false, task: task, resumeData: nil, fileURL: nil)
             self.idToLastError[id] = nil
@@ -196,8 +228,8 @@ final class DownloadManagerV2: ObservableObject {
             self.completionHandlers[id] = { result in
                 continuation.resume(with: result)
             }
-            let task = self.session.downloadTask(withResumeData: resumeData) { [weak self] tempURL, _, error in
-                Task { await self?.handleDownloadCompletion(id: id, tempURL: tempURL, error: error) }
+            let task = self.session.downloadTask(withResumeData: resumeData) { [weak self] tempURL, response, error in
+                Task { await self?.handleDownloadCompletion(id: id, tempURL: tempURL, response: response, error: error) }
             }
             self.downloads[id]?.task = task
             self.downloads[id]?.isPaused = false
@@ -211,21 +243,38 @@ final class DownloadManagerV2: ObservableObject {
     
     // MARK: - Helpers
     private func observeProgress(for id: Int, task: URLSessionDownloadTask) {
-        _ = task.progress.observe(\.fractionCompleted) { [weak self] prog, _ in
+        progressObservations[id] = task.progress.observe(\.fractionCompleted) { [weak self] prog, _ in
             DispatchQueue.main.async {
                 self?.downloads[id]?.progress = prog.fractionCompleted
             }
         }
-        // We don't retain observation here; just update via KVO until task completes.
     }
     
-    private func handleDownloadCompletion(id: Int, tempURL: URL?, error: Error?) async {
+    private func handleDownloadCompletion(id: Int, tempURL: URL?, response: URLResponse?, error: Error?) async {
         if let tempURL {
-            downloads[id]?.fileURL = tempURL
-            downloads[id]?.isDownloading = false
-            downloads[id]?.isPaused = false
-            downloads[id]?.progress = 1.0
-            completionHandlers[id]?(.success(tempURL))
+            do {
+                let destination = try destinationDirectory()
+                defer { destination.settings?.endAccessingDownloadFolder(destination.scopedURL) }
+                let filename = suggestedFilename(for: id, response: response, fallback: tempURL.lastPathComponent)
+                let dest = destination.folder.appendingPathComponent(filename)
+                try? FileManager.default.removeItem(at: dest)
+                try FileManager.default.moveItem(at: tempURL, to: dest)
+
+                downloads[id]?.fileURL = dest
+                downloads[id]?.isDownloading = false
+                downloads[id]?.isPaused = false
+                downloads[id]?.progress = 1.0
+                if let expected = response?.expectedContentLength, expected > 0 {
+                    idToFileSize[id] = expected
+                }
+                idToLastError[id] = nil
+                completionHandlers[id]?(.success(dest))
+            } catch {
+                downloads[id]?.isDownloading = false
+                downloads[id]?.isPaused = false
+                idToLastError[id] = (error as NSError).localizedDescription
+                completionHandlers[id]?(.failure(error))
+            }
         } else {
             downloads[id]?.isDownloading = false
             downloads[id]?.isPaused = false
@@ -237,10 +286,58 @@ final class DownloadManagerV2: ObservableObject {
         // Cleanup
         downloads[id]?.task = nil
         downloads[id]?.resumeData = nil
-        idToURL[id] = nil
-        idToTitle[id] = nil
-        idToCreated[id] = nil
         completionHandlers[id] = nil
+        progressObservations[id] = nil
+    }
+
+    private func suggestedFilename(for id: Int, response: URLResponse?, fallback: String) -> String {
+        if let http = response as? HTTPURLResponse,
+           let disposition = http.value(forHTTPHeaderField: "Content-Disposition"),
+           let fileName = parseFilename(fromContentDisposition: disposition) {
+            return fileName
+        }
+
+        if let suggested = response?.suggestedFilename, !suggested.isEmpty, suggested != "Unknown" {
+            return suggested
+        }
+
+        if let current = idToURL[id]?.lastPathComponent, !current.isEmpty {
+            return current
+        }
+
+        return fallback.isEmpty ? UUID().uuidString : fallback
+    }
+
+    private func parseFilename(fromContentDisposition header: String) -> String? {
+        let patterns = [
+            #"filename\*=UTF-8''([^;]+)"#,
+            #"filename=\"([^\"]+)\""#,
+            #"filename=([^;]+)"#
+        ]
+
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { continue }
+            let range = NSRange(header.startIndex..<header.endIndex, in: header)
+            guard let match = regex.firstMatch(in: header, options: [], range: range),
+                  match.numberOfRanges > 1,
+                  let valueRange = Range(match.range(at: 1), in: header) else { continue }
+
+            let rawValue = String(header[valueRange])
+            let raw = rawValue
+                .removingPercentEncoding?
+                .trimmingCharacters(in: CharacterSet(charactersIn: "\"' ").union(.whitespacesAndNewlines))
+                ?? rawFallback(rawValue)
+
+            if !raw.isEmpty {
+                return raw
+            }
+        }
+
+        return nil
+    }
+
+    private func rawFallback<S: StringProtocol>(_ value: S) -> String {
+        String(value).trimmingCharacters(in: CharacterSet(charactersIn: "\"' ").union(.whitespacesAndNewlines))
     }
     
     // MARK: - Persistence
@@ -315,4 +412,3 @@ extension DownloadManagerV2 {
     }
 }
 #endif
-

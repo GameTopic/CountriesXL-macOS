@@ -6,12 +6,16 @@ import SwiftUI
 struct HelpCommands: Commands {
     var body: some Commands {
         CommandGroup(after: .help) {
+            Divider()
+
             Button("What’s New") {
                 NotificationCenter.default.post(name: .openWhatsNew, object: nil)
             }
             .keyboardShortcut("N", modifiers: [.command, .shift])
 
-            Button("Guide") {
+            Divider()
+
+            Button("Guides") {
                 NotificationCenter.default.post(name: .openGuide, object: nil)
             }
             .keyboardShortcut("?", modifiers: [.command])

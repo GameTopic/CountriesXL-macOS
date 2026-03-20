@@ -184,7 +184,6 @@ struct SettingsView: View {
                         Task { @MainActor in
                             do {
                                 try await settings.apply()
-                                dismiss()
                             } catch {
                                 logger.error("Failed to apply settings: \(error.localizedDescription, privacy: .public)")
                                 lastError = error
@@ -326,13 +325,30 @@ private struct PrivacySettingsView: View {
         let message: String
     }
 
+    private var isLocationAvailable: Bool {
+        if #available(macOS 26.0, *) { return true }
+        return false
+    }
+
     var body: some View {
         Form {
             Section {
                 Toggle(LocalizedStringKey("privacy.pushNotifications"), isOn: $settings.draft.pushNotificationsEnabled)
                 Toggle(LocalizedStringKey("privacy.location"), isOn: $settings.draft.locationEnabled)
+                    .disabled(!isLocationAvailable)
+                    .help(isLocationAvailable ? "" : "Requires macOS 26 or later")
                     .onChange(of: settings.draft.locationEnabled) { _, newValue in
-                        if newValue { LocationService.shared.requestAuthorizationAndStart() } else { LocationService.shared.stop() }
+                        guard isLocationAvailable else {
+                            settings.draft.locationEnabled = false
+                            return
+                        }
+                        if #available(macOS 26.0, *) {
+                            if newValue {
+                                LocationService.shared.requestAuthorizationAndStart()
+                            } else {
+                                LocationService.shared.stop()
+                            }
+                        }
                     }
                 Toggle(LocalizedStringKey("privacy.disableAds"), isOn: $settings.draft.adsDisabled)
                 Toggle(LocalizedStringKey("privacy.disableVideoAds"), isOn: $settings.draft.disableVideoAds)

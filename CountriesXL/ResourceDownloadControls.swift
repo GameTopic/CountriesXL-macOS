@@ -6,12 +6,12 @@ public struct ResourceDownloadControls: View {
     @ObservedObject private var manager = DownloadManagerV2.shared
     private let id: Int
     private let title: String
-    private let urlProvider: () async throws -> URL
+    private let requestProvider: () async throws -> URLRequest
 
-    public init(id: Int, title: String, urlProvider: @escaping () async throws -> URL) {
+    public init(id: Int, title: String, requestProvider: @escaping () async throws -> URLRequest) {
         self.id = id
         self.title = title
-        self.urlProvider = urlProvider
+        self.requestProvider = requestProvider
     }
 
     public var body: some View {
@@ -42,7 +42,7 @@ public struct ResourceDownloadControls: View {
                         Button("Clear") { manager.clearDownload(id: id) }
                             .buttonStyle(.bordered)
                     } else {
-                        DownloadButton(id: id, title: title, style: .bordered, urlProvider: urlProvider)
+                        DownloadButton(id: id, title: title, style: .bordered, requestProvider: requestProvider)
                     }
                 }
                 Text(manager.statusText(for: id))
@@ -50,8 +50,7 @@ public struct ResourceDownloadControls: View {
                     .foregroundStyle(.secondary)
             }
         } else {
-            DownloadButton(id: id, title: title, style: .bordered, urlProvider: urlProvider)
+            DownloadButton(id: id, title: title, style: .bordered, requestProvider: requestProvider)
         }
     }
 }
-

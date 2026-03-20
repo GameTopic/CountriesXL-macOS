@@ -4,7 +4,7 @@ import AppKit
 @objc public final class VideoPlaybackPlugin: PluginBase {
     public override var pluginName: String { "Video Playback" }
 
-    public override func register(with manager: PluginManager) {
+    public override func register(with manager: PluginManaging) {
         // Example: register user defaults for plugin settings
         let defaults: [String: Any] = [
             "mediaPreferredQuality": "auto",
@@ -17,6 +17,6 @@ import AppKit
 
     // Static registration for compiled-in plugin presence
     private static let _registered: Void = {
-        PluginManager.shared.registerPresence(name: "Video Playback")
+        PluginHostManager.shared.registerPresence(name: "Video Playback")
     }()
 }

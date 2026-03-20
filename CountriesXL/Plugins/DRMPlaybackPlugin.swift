@@ -4,7 +4,7 @@ import AppKit
 @objc public final class DRMPlaybackPlugin: PluginBase {
     public override var pluginName: String { "DRM Playback" }
 
-    public override func register(with manager: PluginManager) {
+    public override func register(with manager: PluginManaging) {
         // Register DRM-specific defaults
         let defaults: [String: Any] = [
             "drmLicenseEndpoint": "",
@@ -14,6 +14,6 @@ import AppKit
     }
 
     private static let _registered: Void = {
-        PluginManager.shared.registerPresence(name: "DRM Playback")
+        PluginHostManager.shared.registerPresence(name: "DRM Playback")
     }()
 }

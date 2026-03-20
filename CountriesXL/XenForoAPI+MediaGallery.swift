@@ -19,7 +19,7 @@ extension XenForoAPI {
     func fetchMediaGallery(page: Int = 1, perPage: Int = 24, accessToken: String? = nil) async throws -> [XFMediaItem] {
         // Use route prefix if available
         let mediaPrefix = UserDefaults.standard.string(forKey: "xf_media_route_prefix") ?? "media"
-        var req = request(path: "\(mediaPrefix)")
+        var req = try request(path: "\(mediaPrefix)")
         // Add paging query parameters
         var comps = URLComponents(url: req.url!, resolvingAgainstBaseURL: false)!
         comps.queryItems = [URLQueryItem(name: "page", value: String(page)), URLQueryItem(name: "per_page", value: String(perPage))]
@@ -39,7 +39,8 @@ extension XenForoAPI {
                 XFMediaItem(id: dto.media_id, title: dto.title, description: dto.description, thumbnailURL: dto.thumbnail_url, playbackCandidates: dto.playback_urls?.compactMapValues { URL(string: $0) } ?? [:], uploadedDate: dto.uploaded_date.map { Date(timeIntervalSince1970: $0) })
             }
         }
-        throw APIError.decodingFailed
+        let error = NSError(domain: "XenForoAPI", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unable to decode media gallery response"]) 
+        throw APIError.decodingFailed(error)
     }
 }
 

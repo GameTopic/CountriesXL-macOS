@@ -109,12 +109,12 @@ struct DownloadsView: View {
             }
         }
         .navigationTitle("Downloads")
-        .task(id: UUID()) { await pollDownloads() }
+        .task { await pollDownloads() }
     }
 
     private func pollDownloads() async {
         // simple polling to reflect actor state changes
-        while true {
+        while !Task.isCancelled {
             let snapshot = await DownloadManager.shared.items
             await MainActor.run { self.items = snapshot }
             try? await Task.sleep(nanoseconds: 500_000_000)
