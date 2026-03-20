@@ -3,6 +3,7 @@ import Foundation
 // Minimal API client scaffold for XenForo 2.3+ REST API at cities-mods.com
 struct XenForoAPI {
     let baseURL = URL(string: "https://cities-mods.com/api")!
+    private var mediaRoutePrefix: String { UserDefaults.standard.string(forKey: "xf_media_route_prefix") ?? "media" }
 
     // API key should be provided via Info.plist (XenForoAPIKey) or another secure mechanism.
     private var apiKey: String? {
@@ -111,8 +112,51 @@ struct XenForoAPI {
     // MARK: - Common wrappers
     struct ListResponse<T: Decodable>: Decodable { let data: [T]?; let pagination: Pagination? }
     struct SingleResponse<T: Decodable>: Decodable { let data: T }
-    struct Pagination: Decodable { let page: Int?; let perPage: Int?; let total: Int? }
+    struct Pagination: Decodable {
+        let page: Int?
+        let perPage: Int?
+        let total: Int?
+        let lastPage: Int?
+        let shown: Int?
+
+        enum CodingKeys: String, CodingKey {
+            case page
+            case currentPage = "current_page"
+            case perPage = "per_page"
+            case total
+            case lastPage = "last_page"
+            case shown
+        }
+
+        init(page: Int?, perPage: Int?, total: Int?, lastPage: Int? = nil, shown: Int? = nil) {
+            self.page = page
+            self.perPage = perPage
+            self.total = total
+            self.lastPage = lastPage
+            self.shown = shown
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            page = try container.decodeIfPresent(Int.self, forKey: .page)
+                ?? container.decodeIfPresent(Int.self, forKey: .currentPage)
+            perPage = try container.decodeIfPresent(Int.self, forKey: .perPage)
+            total = try container.decodeIfPresent(Int.self, forKey: .total)
+            lastPage = try container.decodeIfPresent(Int.self, forKey: .lastPage)
+            shown = try container.decodeIfPresent(Int.self, forKey: .shown)
+        }
+    }
     struct Paged<T: Decodable> { let items: [T]; let pagination: Pagination? }
+    struct MediaEnvelopeListResponse<T: Decodable>: Decodable {
+        let media: [T]?
+        let pagination: Pagination?
+
+        enum CodingKeys: String, CodingKey {
+            case media
+            case pagination
+        }
+    }
+    struct MediaEnvelopeSingleResponse<T: Decodable>: Decodable { let media: T }
 
     // MARK: - Site index
     struct SiteIndex: Decodable { let version_id: Int; let site_title: String; let base_url: String; let api_url: String }
@@ -168,15 +212,24 @@ struct XenForoAPI {
         var q: [URLQueryItem] = []
         if let page = page { q.append(URLQueryItem(name: "page", value: String(page))) }
         if let category = category { q.append(URLQueryItem(name: "category_id", value: String(category))) }
-        let req = try request(path: "media", accessToken: accessToken, query: q)
+        let req = try request(path: mediaRoutePrefix, accessToken: accessToken, query: q)
+        let envelope: MediaEnvelopeListResponse<XFMedia> = try await send(req)
+        if let media = envelope.media {
+            return Paged(items: media, pagination: envelope.pagination)
+        }
         let res: ListResponse<XFMedia> = try await send(req)
         return Paged(items: res.data ?? [], pagination: res.pagination)
     }
 
     func getMedia(id: Int, accessToken: String? = nil) async throws -> XFMedia {
-        let req = try request(path: "media/\(id)", accessToken: accessToken)
-        let res: SingleResponse<XFMedia> = try await send(req)
-        return res.data
+        let req = try request(path: "\(mediaRoutePrefix)/\(id)", accessToken: accessToken)
+        do {
+            let res: SingleResponse<XFMedia> = try await send(req)
+            return res.data
+        } catch APIError.decodingFailed {
+            let res: MediaEnvelopeSingleResponse<XFMedia> = try await send(req)
+            return res.media
+        }
     }
 
     // MARK: - Threads
@@ -253,7 +306,44 @@ struct XenForoAPI {
             "media_url": mediaURL.absoluteString
         ]
         if let description = description { form["description"] = description }
-        let req = try request(path: "media", method: .POST, accessToken: accessToken, formData: form)
+        let req = try request(path: mediaRoutePrefix, method: .POST, accessToken: accessToken, formData: form)
+        let res: SingleResponse<XFMedia> = try await send(req)
+        return res.data
+    }
+
+    func uploadMediaFile(categoryID: Int,
+                         title: String,
+                         fileData: Data,
+                         filename: String,
+                         mimeType: String,
+                         description: String? = nil,
+                         accessToken: String? = nil) async throws -> XFMedia {
+        var req = try request(path: mediaRoutePrefix, method: .POST, accessToken: accessToken)
+        let boundary = "Boundary-\(UUID().uuidString)"
+        req.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        var body = Data()
+
+        func appendField(_ name: String, value: String) {
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"\(name)\"\r\n\r\n".data(using: .utf8)!)
+            body.append("\(value)\r\n".data(using: .utf8)!)
+        }
+
+        appendField("category_id", value: String(categoryID))
+        appendField("title", value: title)
+        if let description, !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            appendField("description", value: description)
+        }
+
+        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(fileData)
+        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        req.httpBody = body
+
         let res: SingleResponse<XFMedia> = try await send(req)
         return res.data
     }
@@ -516,17 +606,171 @@ struct XFThread: Identifiable, Codable, Hashable {
     }
 }
 
-struct XFMedia: Identifiable, Codable, Hashable {
+enum XFMediaKind: String, CaseIterable, Identifiable {
+    case image
+    case video
+    case audio
+    case embed
+    case unknown
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .image: return "Images"
+        case .video: return "Videos"
+        case .audio: return "Audio"
+        case .embed: return "Embeds"
+        case .unknown: return "All"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .image: return "photo"
+        case .video: return "play.rectangle"
+        case .audio: return "waveform"
+        case .embed: return "link"
+        case .unknown: return "square.grid.2x2"
+        }
+    }
+}
+
+struct XFMedia: Identifiable, Decodable, Hashable {
+    struct NestedCategory: Decodable, Hashable {
+        let categoryID: Int
+        let title: String
+
+        enum CodingKeys: String, CodingKey {
+            case categoryID = "category_id"
+            case title
+        }
+    }
+
+    struct NestedAlbum: Decodable, Hashable {
+        let albumID: Int
+        let title: String
+
+        enum CodingKeys: String, CodingKey {
+            case albumID = "album_id"
+            case title
+        }
+    }
+
     var id: Int
     var title: String
     var mediaURL: URL
     var thumbnailURL: URL?
+    var viewURL: URL?
+    var description: String?
+    var username: String?
+    var mediaType: String?
+    var categoryID: Int?
+    var categoryTitle: String?
+    var albumID: Int?
+    var albumTitle: String?
+    var viewCount: Int?
+    var commentCount: Int?
+    var reactionScore: Int?
+    var postedDate: Date?
+    var updatedDate: Date?
 
     enum CodingKeys: String, CodingKey {
         case id = "media_id"
         case title
         case mediaURL = "media_url"
+        case contentURL = "content_url"
+        case viewURL = "view_url"
         case thumbnailURL = "thumbnail_url"
+        case embedURL = "media_embed_url"
+        case description
+        case descriptionPlain = "description_plain"
+        case username
+        case mediaType = "media_type"
+        case contentType = "content_type"
+        case mediaTypeID = "media_type_id"
+        case categoryID = "category_id"
+        case categoryTitle = "category_title"
+        case categoryObject = "Category"
+        case albumID = "album_id"
+        case albumObject = "Album"
+        case viewCount = "view_count"
+        case commentCount = "comment_count"
+        case reactionScore = "reaction_score"
+        case postedDate = "posted_date"
+        case uploadDate = "upload_date"
+        case mediaDate = "media_date"
+        case updatedDate = "updated_date"
+        case lastEditDate = "last_edit_date"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try container.decode(Int.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+
+        if let mediaURL = try container.decodeIfPresent(URL.self, forKey: .mediaURL) {
+            self.mediaURL = mediaURL
+        } else if let contentURL = try container.decodeIfPresent(URL.self, forKey: .contentURL) {
+            mediaURL = contentURL
+        } else if let embedURL = try container.decodeIfPresent(URL.self, forKey: .embedURL) {
+            mediaURL = embedURL
+        } else if let viewURL = try container.decodeIfPresent(URL.self, forKey: .viewURL) {
+            mediaURL = viewURL
+        } else {
+            throw DecodingError.keyNotFound(
+                CodingKeys.mediaURL,
+                DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Missing media URL")
+            )
+        }
+
+        thumbnailURL = try container.decodeIfPresent(URL.self, forKey: .thumbnailURL)
+        viewURL = try container.decodeIfPresent(URL.self, forKey: .viewURL)
+        let decodedDescription = try container.decodeIfPresent(String.self, forKey: .description)
+        let decodedPlainDescription = try container.decodeIfPresent(String.self, forKey: .descriptionPlain)
+        description = decodedDescription ?? decodedPlainDescription
+        username = try container.decodeIfPresent(String.self, forKey: .username)
+        let decodedMediaType = try container.decodeIfPresent(String.self, forKey: .mediaType)
+        let decodedContentType = try container.decodeIfPresent(String.self, forKey: .contentType)
+        let decodedMediaTypeID = try container.decodeIfPresent(String.self, forKey: .mediaTypeID)
+        let decodedCategoryObject = try container.decodeIfPresent(NestedCategory.self, forKey: .categoryObject)
+        let decodedAlbumObject = try container.decodeIfPresent(NestedAlbum.self, forKey: .albumObject)
+        mediaType = decodedMediaType ?? decodedContentType ?? decodedMediaTypeID
+        categoryID = try container.decodeIfPresent(Int.self, forKey: .categoryID) ?? decodedCategoryObject?.categoryID
+        categoryTitle = try container.decodeIfPresent(String.self, forKey: .categoryTitle) ?? decodedCategoryObject?.title
+        albumID = try container.decodeIfPresent(Int.self, forKey: .albumID) ?? decodedAlbumObject?.albumID
+        albumTitle = decodedAlbumObject?.title
+        viewCount = try container.decodeIfPresent(Int.self, forKey: .viewCount)
+        commentCount = try container.decodeIfPresent(Int.self, forKey: .commentCount)
+        reactionScore = try container.decodeIfPresent(Int.self, forKey: .reactionScore)
+        let decodedPostedDate = try container.decodeIfPresent(Date.self, forKey: .postedDate)
+        let decodedUploadDate = try container.decodeIfPresent(Date.self, forKey: .uploadDate)
+        let decodedMediaDate = try container.decodeIfPresent(Date.self, forKey: .mediaDate)
+        let decodedUpdatedDate = try container.decodeIfPresent(Date.self, forKey: .updatedDate)
+        let decodedLastEditDate = try container.decodeIfPresent(Date.self, forKey: .lastEditDate)
+        postedDate = decodedPostedDate ?? decodedUploadDate ?? decodedMediaDate
+        updatedDate = decodedUpdatedDate ?? decodedLastEditDate
+    }
+
+    var kind: XFMediaKind {
+        let inferred = [mediaType, mediaURL.pathExtension, thumbnailURL?.pathExtension]
+            .compactMap { $0?.lowercased() }
+            .joined(separator: " ")
+
+        if inferred.contains("image") || ["jpg", "jpeg", "png", "gif", "webp", "heic", "bmp", "tiff"].contains(mediaURL.pathExtension.lowercased()) {
+            return .image
+        }
+        if inferred.contains("video") || ["mp4", "mov", "m4v", "m3u8", "webm", "avi"].contains(mediaURL.pathExtension.lowercased()) {
+            return .video
+        }
+        if inferred.contains("audio") || ["mp3", "wav", "aac", "m4a", "flac", "ogg"].contains(mediaURL.pathExtension.lowercased()) {
+            return .audio
+        }
+        if mediaURL.host != nil {
+            return .embed
+        }
+        return .unknown
     }
 }
 

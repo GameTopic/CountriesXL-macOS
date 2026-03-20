@@ -35,9 +35,13 @@ struct ResourcesView: View {
         }
     }
 
+    private var discoveryResources: [XFResource] {
+        sortedResources
+    }
+
     private var featuredResources: [XFResource] {
         Array(
-            resources
+            discoveryResources
                 .sorted { featureScore(for: $0) > featureScore(for: $1) }
                 .prefix(5)
         )
@@ -45,7 +49,7 @@ struct ResourcesView: View {
 
     private var latestResources: [XFResource] {
         Array(
-            resources
+            discoveryResources
                 .sorted { mostRecentDate(for: $0) > mostRecentDate(for: $1) }
                 .prefix(4)
         )
@@ -291,6 +295,17 @@ struct ResourcesView: View {
             }
             .pickerStyle(.menu)
 
+            if selectedCategory != .all || selectedRating != .any || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedSort != .featured {
+                Button("Reset") {
+                    searchText = ""
+                    selectedCategory = .all
+                    selectedSort = .featured
+                    selectedRating = .any
+                    selectedPage = 1
+                }
+                .buttonStyle(.bordered)
+            }
+
             Button {
                 Task { await loadResources(forceRefresh: true) }
             } label: {
@@ -302,11 +317,34 @@ struct ResourcesView: View {
                 ProgressView()
                     .controlSize(.small)
             }
+
+            Text(activeFilterSummary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
     }
 
     private var browseSubtitle: String {
         "\(sortedResources.count.formatted()) resources across \(totalPages.formatted()) page\(totalPages == 1 ? "" : "s")."
+    }
+
+    private var activeFilterSummary: String {
+        var parts: [String] = []
+
+        if selectedCategory != .all {
+            parts.append(selectedCategory.title)
+        }
+        if selectedRating != .any {
+            parts.append(selectedRating.title)
+        }
+        if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            parts.append("Search")
+        }
+        if selectedSort != .featured {
+            parts.append(selectedSort.title)
+        }
+
+        return parts.isEmpty ? "No active filters" : parts.joined(separator: " • ")
     }
 
     private var itemRangeText: String {
@@ -334,33 +372,27 @@ struct ResourcesView: View {
     }
 
     private func loadAllResources() async throws -> [XFResource] {
-        if let compatibleItems = try? await api.fetchResources(accessToken: appState.accessToken), !compatibleItems.isEmpty {
-            return compatibleItems
-        }
-
-        let firstPage = try await api.listResources(page: 1, accessToken: appState.accessToken)
-        var allItems = firstPage.items
+        let firstPage = try await api.fetchResources(accessToken: appState.accessToken)
+        var allItems = firstPage
         var page = 2
         let maxPages = 100
 
         while page <= maxPages {
+            let pageResult: [XFResource]
             do {
-                let pageResult = try await api.listResources(page: page, accessToken: appState.accessToken)
-                let newItems = pageResult.items.filter { candidate in
-                    !allItems.contains(where: { $0.id == candidate.id })
-                }
-
-                if newItems.isEmpty {
-                    break
-                }
-
-                allItems.append(contentsOf: newItems)
-                page += 1
-            } catch XenForoAPI.APIError.badRequest {
-                break
+                pageResult = try await api.fetchResources(page: page, accessToken: appState.accessToken)
             } catch {
-                throw error
+                break
             }
+
+            let newItems = pageResult.filter { candidate in
+                !allItems.contains(where: { $0.id == candidate.id })
+            }
+
+            if newItems.isEmpty { break }
+
+            allItems.append(contentsOf: newItems)
+            page += 1
         }
 
         return allItems
@@ -633,8 +665,12 @@ private struct ResourceFeaturedMarqueeCard: View {
 
     var body: some View {
         NavigationLink(
-            destination: ResourceDetailView(appState: appState, resource: resource, fallbackRelatedResources: allResources)
-                .environmentObject(appState)
+            value: AppNavigationDestination.resource(
+                ResourceNavigationContext(
+                    resource: resource,
+                    fallbackRelatedResources: allResources
+                )
+            )
         ) {
             VStack(alignment: .leading, spacing: 18) {
                 ResourceArtworkView(resource: resource, fillsWidth: true)
@@ -674,7 +710,7 @@ private struct ResourceFeaturedMarqueeCard: View {
                 }
             }
             .padding(20)
-            .frame(maxWidth: .infinity, minHeight: 320, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 260, alignment: .leading)
             .background(
                 LinearGradient(
                     colors: [Color.white, Color(red: 0.97, green: 0.985, blue: 1.0)],
@@ -717,8 +753,12 @@ private struct ResourceLatestRowCard: View {
 
     var body: some View {
         NavigationLink(
-            destination: ResourceDetailView(appState: appState, resource: resource, fallbackRelatedResources: allResources)
-                .environmentObject(appState)
+            value: AppNavigationDestination.resource(
+                ResourceNavigationContext(
+                    resource: resource,
+                    fallbackRelatedResources: allResources
+                )
+            )
         ) {
             HStack(spacing: 12) {
                 ResourceArtworkView(resource: resource, fillsWidth: false, fixedWidth: 139)
@@ -781,8 +821,12 @@ private struct ResourceBrowseCard: View {
 
     var body: some View {
         NavigationLink(
-            destination: ResourceDetailView(appState: appState, resource: resource, fallbackRelatedResources: allResources)
-                .environmentObject(appState)
+            value: AppNavigationDestination.resource(
+                ResourceNavigationContext(
+                    resource: resource,
+                    fallbackRelatedResources: allResources
+                )
+            )
         ) {
             VStack(alignment: .leading, spacing: 16) {
                 ResourceArtworkView(resource: resource, fillsWidth: true)
@@ -1513,7 +1557,14 @@ struct ResourceDetailView: View {
         ResourceCard(title: "Related Resources") {
             LazyVGrid(columns: relatedGridColumns, spacing: 14) {
                 ForEach(resolvedRelatedResources.prefix(6)) { related in
-                    NavigationLink(destination: ResourceDetailView(appState: appState, resource: related, fallbackRelatedResources: fallbackRelatedResources)) {
+                    NavigationLink(
+                        value: AppNavigationDestination.resource(
+                            ResourceNavigationContext(
+                                resource: related,
+                                fallbackRelatedResources: fallbackRelatedResources
+                            )
+                        )
+                    ) {
                         RelatedResourceCard(resource: related)
                     }
                     .buttonStyle(.plain)

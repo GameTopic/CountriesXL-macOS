@@ -6,6 +6,10 @@ extension XenForoAPI {
         let resources: [ResourceDTO]?
     }
 
+    struct ResourceCategoryDTO: Decodable {
+        let title: String
+    }
+
     struct ResourceDTO: Decodable {
         let resource_id: Int
         let title: String
@@ -13,19 +17,31 @@ extension XenForoAPI {
         let cover_url: URL?
         let file_size: Int?
         let category_title: String?
+        let Category: ResourceCategoryDTO?
         let rating_avg: Double?
         let rating_count: Int?
         let release_date: Double?
+        let resource_date: Double?
         let last_update: Double?
         let download_count: Int?
         let view_count: Int?
         let tagline: String?
+        let tag_line: String?
     }
 
     // Fetches resources and maps to XFResource using this file's DTOs.
     // Prefer the main client's listResources when possible, but keep this for compatibility.
     func fetchResources(accessToken: String?) async throws -> [XFResource] {
-        let req = try request(path: "resources", accessToken: accessToken)
+        try await fetchResources(page: nil, accessToken: accessToken)
+    }
+
+    func fetchResources(page: Int?, accessToken: String?) async throws -> [XFResource] {
+        var query: [URLQueryItem] = []
+        if let page {
+            query.append(URLQueryItem(name: "page", value: String(page)))
+        }
+
+        let req = try request(path: "resources", accessToken: accessToken, query: query)
         let (data, resp) = try await URLSession.shared.data(for: req)
         guard let http = resp as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { throw APIError.invalidResponse }
 
@@ -86,14 +102,14 @@ extension XenForoAPI {
             iconURL: dto.icon_url,
             coverURL: dto.cover_url,
             fileSize: dto.file_size,
-            category: dto.category_title,
+            category: dto.category_title ?? dto.Category?.title,
             rating: dto.rating_avg,
             ratingCount: dto.rating_count,
-            releaseDate: dto.release_date.map { Date(timeIntervalSince1970: $0) },
+            releaseDate: (dto.release_date ?? dto.resource_date).map { Date(timeIntervalSince1970: $0) },
             updatedDate: dto.last_update.map { Date(timeIntervalSince1970: $0) },
             downloadCount: dto.download_count,
             viewCount: dto.view_count,
-            tagLine: dto.tagline
+            tagLine: dto.tagline ?? dto.tag_line
         )
     }
 

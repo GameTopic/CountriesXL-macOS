@@ -28,6 +28,17 @@ enum AppearanceChoice: String, CaseIterable {
     case auto, light, dark
 }
 
+enum AppNavigationDestination: Hashable {
+    case resource(ResourceNavigationContext)
+    case media(XFMedia)
+    case thread(XFThread)
+}
+
+struct ResourceNavigationContext: Hashable {
+    let resource: XFResource
+    let fallbackRelatedResources: [XFResource]
+}
+
 // Root content for macOS app with a modern sidebar + toolbar and search.
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
@@ -46,6 +57,7 @@ struct ContentView: View {
     @AppStorage("useDownloadManagerSheet") private var useDownloadManagerSheet: Bool = false
     @AppStorage("showDisconnectedOverlay") private var showDisconnectedOverlay: Bool = true
     @State private var showSignInPopover: Bool = false
+    @State private var detailPath = NavigationPath()
 
     // Precomputed values to help the type-checker
     private var preferredScheme: ColorScheme? {
@@ -73,7 +85,7 @@ struct ContentView: View {
     }
 
     private var sidebarView: some View {
-        let sidebarItems: [SidebarItem] = [.home, .forums, .resources, .media]
+        let sidebarItems: [SidebarItem] = [.discover, .home, .forums, .resources, .media]
         return List(sidebarItems, selection: $selection) { item in
             NavigationLink(value: item) {
                 HStack(spacing: 6) {
@@ -99,9 +111,28 @@ struct ContentView: View {
     }
 
     private var detailViewBase: some View {
-        ZStack {
-            detailContent
-            overlayView()
+        NavigationStack(path: $detailPath) {
+            ZStack {
+                detailContent
+                overlayView()
+            }
+            .navigationDestination(for: AppNavigationDestination.self) { destination in
+                switch destination {
+                case .resource(let context):
+                    ResourceDetailView(
+                        appState: appState,
+                        resource: context.resource,
+                        fallbackRelatedResources: context.fallbackRelatedResources
+                    )
+                    .environmentObject(appState)
+                case .media(let media):
+                    MediaDetailView(media: media)
+                        .environmentObject(appState)
+                case .thread(let thread):
+                    ThreadDetailView(thread: thread)
+                        .environmentObject(appState)
+                }
+            }
         }
     }
 
@@ -112,11 +143,15 @@ struct ContentView: View {
             .searchable(text: $searchText, placement: .toolbar, prompt: Text("Search resources, media, threads, users"))
             .onSubmit(of: .search) {
                 selection = .search
+                detailPath = NavigationPath()
                 appState.searchQuery = searchText
             }
             .onAppear {
                 networkMonitor.start()
                 Task { await boardStatus.refresh() }
+            }
+            .onChange(of: selection) { _, _ in
+                detailPath = NavigationPath()
             }
     }
 
@@ -241,6 +276,22 @@ struct ContentView: View {
     }
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .navigation) {
+            Button {
+                goBack()
+            } label: {
+                Label("Back", systemImage: "chevron.backward")
+            }
+            .help("Go Back")
+
+            Button {
+                goForward()
+            } label: {
+                Label("Forward", systemImage: "chevron.forward")
+            }
+            .help("Go Forward")
+        }
+
         ToolbarItemGroup(placement: .automatic) {
             Menu {
                 if appState.isAuthenticated {
@@ -437,6 +488,8 @@ struct ContentView: View {
     @ViewBuilder
     private var detailContent: some View {
         switch selection ?? .resources {
+        case .discover:
+            DiscoverView()
         case .home:
             HomeView()
         case .forums:
@@ -501,8 +554,27 @@ struct ContentView: View {
         #endif
     }
 
+    private func goBack() {
+        if !detailPath.isEmpty {
+            detailPath.removeLast()
+            return
+        }
+
+        #if os(macOS)
+        NSApp.sendAction(Selector(("goBack:")), to: nil, from: nil)
+        #endif
+    }
+
+    private func goForward() {
+        #if os(macOS)
+        NSApp.sendAction(Selector(("goForward:")), to: nil, from: nil)
+        #endif
+    }
+
     private func currentDetailPrintableView() -> some View {
         switch selection ?? .resources {
+        case .discover:
+            return AnyView(DiscoverView().environmentObject(appState))
         case .home:
             return AnyView(HomeView().environmentObject(appState))
         case .forums:
@@ -552,6 +624,7 @@ struct ContentView: View {
 // MARK: - Sidebar Routing
 
 enum SidebarItem: String, CaseIterable, Identifiable {
+    case discover
     case home
     case forums
     case resources
@@ -564,6 +637,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
+        case .discover: return "Discover"
         case .home: return "Home"
         case .forums: return "Forums"
         case .resources: return "Resources"
@@ -576,6 +650,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
 
     var systemImage: String {
         switch self {
+        case .discover: return "safari"
         case .home: return "house"
         case .forums: return "text.bubble"
         case .resources: return "shippingbox"
