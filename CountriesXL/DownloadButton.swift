@@ -1,46 +1,93 @@
 import SwiftUI
 
-public struct DownloadButton: View {
+struct DownloadButton: View {
     @ObservedObject private var manager = DownloadManagerV2.shared
 
     private let id: Int
     private let title: String
     private let url: URL
     private let style: ButtonStyleType
+    private let descriptor: DownloadManagerV2.DownloadDescriptor
+    private let accessibilityIdentifier: String?
+    private let onStart: (() -> Void)?
     private var urlProvider: (() async throws -> URL)? = nil
     private var requestProvider: (() async throws -> URLRequest)? = nil
 
-    public enum ButtonStyleType { case bordered, borderedProminent, plain }
+    enum ButtonStyleType { case bordered, borderedProminent, plain }
 
-    public init(id: Int, title: String, url: URL, style: ButtonStyleType = .bordered) {
+    init(
+        id: Int,
+        title: String,
+        url: URL,
+        style: ButtonStyleType = .bordered,
+        descriptor: DownloadManagerV2.DownloadDescriptor = .init(),
+        accessibilityIdentifier: String? = nil,
+        onStart: (() -> Void)? = nil
+    ) {
         self.id = id
         self.title = title
         self.url = url
         self.style = style
+        self.descriptor = descriptor
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.onStart = onStart
     }
 
     // Convenience initializer for String-based identifiers
-    public init(id: String, title: String, url: URL, style: ButtonStyleType = .bordered) {
+    init(
+        id: String,
+        title: String,
+        url: URL,
+        style: ButtonStyleType = .bordered,
+        descriptor: DownloadManagerV2.DownloadDescriptor = .init(),
+        accessibilityIdentifier: String? = nil,
+        onStart: (() -> Void)? = nil
+    ) {
         self.id = id.stableIntID
         self.title = title
         self.url = url
         self.style = style
+        self.descriptor = descriptor
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.onStart = onStart
     }
 
     // Async URL factory initializer
-    public init(id: Int, title: String, style: ButtonStyleType = .bordered, urlProvider: @escaping () async throws -> URL) {
+    init(
+        id: Int,
+        title: String,
+        style: ButtonStyleType = .bordered,
+        descriptor: DownloadManagerV2.DownloadDescriptor = .init(),
+        accessibilityIdentifier: String? = nil,
+        onStart: (() -> Void)? = nil,
+        urlProvider: @escaping () async throws -> URL
+    ) {
         self.id = id
         self.title = title
         self.url = URL(string: "https://cities-mods.com")! // placeholder; will be replaced by urlProvider at runtime
         self.style = style
+        self.descriptor = descriptor
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.onStart = onStart
         self.urlProvider = urlProvider
     }
 
-    public init(id: Int, title: String, style: ButtonStyleType = .bordered, requestProvider: @escaping () async throws -> URLRequest) {
+    init(
+        id: Int,
+        title: String,
+        style: ButtonStyleType = .bordered,
+        descriptor: DownloadManagerV2.DownloadDescriptor = .init(),
+        accessibilityIdentifier: String? = nil,
+        onStart: (() -> Void)? = nil,
+        requestProvider: @escaping () async throws -> URLRequest
+    ) {
         self.id = id
         self.title = title
         self.url = URL(string: "https://cities-mods.com")!
         self.style = style
+        self.descriptor = descriptor
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.onStart = onStart
         self.requestProvider = requestProvider
     }
 
@@ -48,7 +95,19 @@ public struct DownloadButton: View {
         Group {
             if let state = manager.downloads[id] {
                 HStack(spacing: 8) {
-                    if state.isDownloading {
+                    if state.isPreparing {
+                        ProgressView()
+                            .controlSize(.small)
+                        Text("Preparing")
+                            .foregroundStyle(.secondary)
+                    } else if state.isQueued {
+                        Image(systemName: "tray.full")
+                        Text("Queued")
+                            .foregroundStyle(.secondary)
+                        Button("Open") {
+                            NotificationCenter.default.post(name: .openDownloads, object: nil)
+                        }
+                    } else if state.isDownloading {
                         ProgressView(value: state.progress)
                             .frame(width: 80)
                         Button("Pause") { manager.pauseDownload(id: id) }
@@ -64,12 +123,20 @@ public struct DownloadButton: View {
                         Button(action: start) {
                             Label("Download", systemImage: "arrow.down.circle")
                         }
+                        .accessibilityIdentifier(accessibilityIdentifier ?? "")
                     }
+                }
+            } else if manager.isCompleted(id: id) {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle")
+                    Text("Downloaded")
+                    Button("Clear") { manager.clearDownload(id: id) }
                 }
             } else {
                 Button(action: start) {
                     Label("Download", systemImage: "arrow.down.circle")
                 }
+                .accessibilityIdentifier(accessibilityIdentifier ?? "")
             }
         }
         .applyStyle(style)
@@ -78,12 +145,17 @@ public struct DownloadButton: View {
     }
 
     private func start() {
+        manager.prepareDownload(id: id, title: title, descriptor: descriptor)
+        onStart?()
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .openDownloads, object: nil)
+        }
+
         Task {
             do {
-                NotificationCenter.default.post(name: .openDownloads, object: nil)
                 if let requestProvider {
                     let request = try await requestProvider()
-                    _ = try await manager.startDownload(id: id, title: title, request: request, displayURL: request.url)
+                    manager.configurePreparedDownload(id: id, request: request, displayURL: request.url)
                 } else {
                     let actualURL: URL
                     if let provider = urlProvider {
@@ -91,10 +163,12 @@ public struct DownloadButton: View {
                     } else {
                         actualURL = url
                     }
-                    _ = try await manager.startDownload(id: id, title: title, url: actualURL)
+                    var request = URLRequest(url: actualURL)
+                    request.httpMethod = "GET"
+                    manager.configurePreparedDownload(id: id, request: request, displayURL: actualURL)
                 }
             } catch {
-                // Silently ignore or log error as needed
+                manager.failPreparedDownload(id: id, error: error)
             }
         }
     }
@@ -105,6 +179,7 @@ public struct DownloadButton: View {
             if state.isPaused { return "Paused \(title)" }
             if state.progress >= 1.0 { return "Downloaded \(title)" }
         }
+        if manager.isCompleted(id: id) { return "Downloaded \(title)" }
         return "Download \(title)"
     }
 
@@ -114,6 +189,7 @@ public struct DownloadButton: View {
             if state.isPaused { return "Double-tap to resume or cancel" }
             if state.progress >= 1.0 { return "Double-tap to clear entry" }
         }
+        if manager.isCompleted(id: id) { return "Double-tap to clear entry" }
         return "Double-tap to start download"
     }
 }
@@ -130,10 +206,10 @@ private extension View {
 }
 
 // MARK: - Stable ID helpers
-public extension String {
+extension String {
     var stableIntID: Int { Int(bitPattern: UInt(bitPattern: self.hashValue)) }
 }
 
-public extension UUID {
+extension UUID {
     var stableIntID: Int { Int(bitPattern: UInt(bitPattern: self.hashValue)) }
 }

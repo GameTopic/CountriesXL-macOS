@@ -13,13 +13,12 @@ import CoreLocation
 @main
 struct CountriesXLApp: App {
     init() {
-        UserDefaults.standard.register(defaults: [
-            "useDownloadManagerSheet": false
-        ])
-        
+        configureUITestStateIfNeeded()
 #if os(macOS)
         // Offer to move the app to /Applications on first launch if needed.
-        MoveToApplications.promptIfNeeded()
+        if !ProcessInfo.processInfo.arguments.contains("-ui-testing") {
+            MoveToApplications.promptIfNeeded()
+        }
         
         if UserDefaults.standard.bool(forKey: "updatesCheckOnLaunch") {
             // Delay slightly to allow app to finish launching
@@ -73,10 +72,100 @@ struct CountriesXLApp: App {
     }
 }
 
+private extension CountriesXLApp {
+    func configureUITestStateIfNeeded() {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains("-ui-testing") else { return }
+
+        if arguments.contains("-ui-test-seed-preparing-download") {
+            DownloadManagerV2.shared.seedPreparedDownloadForTesting()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                NotificationCenter.default.post(name: .openDownloads, object: nil)
+            }
+        } else if arguments.contains("-ui-test-seed-queued-download") {
+            DownloadManagerV2.shared.seedQueuedDownloadForTesting()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                NotificationCenter.default.post(name: .openDownloads, object: nil)
+            }
+        } else if arguments.contains("-ui-test-seed-completed-download") {
+            DownloadManagerV2.shared.seedCompletedDownloadForTesting()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                NotificationCenter.default.post(name: .openDownloads, object: nil)
+            }
+        } else {
+            DownloadManagerV2.shared.resetForTesting()
+        }
+        #endif
+    }
+}
+
+#if DEBUG
+enum UITestLaunchConfiguration {
+    private static var arguments: [String] {
+        ProcessInfo.processInfo.arguments
+    }
+
+    static var opensResourceOverviewDownloadScenario: Bool {
+        arguments.contains("-ui-test-resource-overview-download")
+    }
+
+    static var seededResourceNavigationContext: ResourceNavigationContext {
+        ResourceNavigationContext(
+            resource: XFResource(
+                id: 328,
+                title: "Lake City - Small Firehall",
+                iconURL: nil,
+                coverURL: nil,
+                fileSize: nil,
+                category: "Civic Services",
+                rating: nil,
+                ratingCount: nil,
+                releaseDate: nil,
+                updatedDate: nil,
+                downloadCount: nil,
+                viewCount: nil,
+                tagLine: "UI test seeded resource overview.",
+                versionString: nil,
+                authorName: nil,
+                summary: "UI test seeded resource overview.",
+                descriptionBBCode: nil,
+                installInstructions: nil,
+                viewURL: URL(string: "https://cities-mods.com/resources/328/"),
+                screenshots: [],
+                fields: [],
+                updates: [],
+                reviews: [],
+                videos: [],
+                relatedResources: [],
+                attachmentURLs: [:]
+            ),
+            fallbackRelatedResources: []
+        )
+    }
+
+    static func resourceOverviewDownloadRequest() -> URLRequest {
+        let fileURL = temporaryDownloadFixtureURL()
+        return URLRequest(url: fileURL)
+    }
+
+    private static func temporaryDownloadFixtureURL() -> URL {
+        let fixtureURL = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("CountriesXL-UITest-Resource-Download.zip")
+
+        if !FileManager.default.fileExists(atPath: fixtureURL.path) {
+            let data = Data([0x50, 0x4B, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00])
+            try? data.write(to: fixtureURL, options: .atomic)
+        }
+
+        return fixtureURL
+    }
+}
+#endif
+
 #if os(macOS)
 private struct AppCommands: Commands {
     @ObservedObject var appState: AppState
-    @AppStorage("useDownloadManagerSheet") private var useDownloadManagerSheet: Bool = false
 
     var body: some Commands {
         CommandGroup(replacing: .saveItem) {
@@ -102,10 +191,6 @@ private struct AppCommands: Commands {
                 NotificationCenter.default.post(name: .openDownloads, object: nil)
             }
             .keyboardShortcut("d", modifiers: [.command, .shift])
-        }
-
-        CommandGroup(after: .toolbar) {
-            Toggle("Use Download Manager for Downloads Sheet", isOn: $useDownloadManagerSheet)
         }
 
         CommandMenu("Account") {
@@ -151,6 +236,8 @@ private struct AppCommands: Commands {
 #endif
 
 extension Notification.Name {
+    static let openAlerts = Notification.Name("CountriesXL.openAlerts")
+    static let openConversations = Notification.Name("CountriesXL.openConversations")
     static let openDownloads = Notification.Name("CountriesXL.openDownloads")
     static let openProfile = Notification.Name("CountriesXL.openProfile")
     static let openSignIn = Notification.Name("CountriesXL.openSignIn")

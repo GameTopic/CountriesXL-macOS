@@ -54,10 +54,10 @@ struct ContentView: View {
 
     @StateObject private var alertsService = AlertsService()
     @StateObject private var conversationsService = ConversationsService()
-    @AppStorage("useDownloadManagerSheet") private var useDownloadManagerSheet: Bool = false
     @AppStorage("showDisconnectedOverlay") private var showDisconnectedOverlay: Bool = true
     @State private var showSignInPopover: Bool = false
     @State private var detailPath = NavigationPath()
+    @State private var appliedUITestNavigation = false
 
     // Precomputed values to help the type-checker
     private var preferredScheme: ColorScheme? {
@@ -149,6 +149,7 @@ struct ContentView: View {
             .onAppear {
                 networkMonitor.start()
                 Task { await boardStatus.refresh() }
+                applyUITestNavigationIfNeeded()
             }
             .onChange(of: selection) { _, _ in
                 detailPath = NavigationPath()
@@ -168,11 +169,7 @@ struct ContentView: View {
                 case .conversations:
                     ConversationsSheet(conversationsService: conversationsService)
                 case .downloads:
-                    if useDownloadManagerSheet {
-                        DownloadsManagerSheet()
-                    } else {
-                        DownloadsSheet()
-                    }
+                    DownloadsManagerSheet()
                 case .settings:
                     SettingsView()
                         .environmentObject(appState)
@@ -198,10 +195,16 @@ struct ContentView: View {
     }
 
     private func applyNotificationModifiers<V: View>(_ view: V) -> some View {
-        view
+        let sheetNotifications = view
             // Removed sheet for showConnectivityDiagnostics here
             .onReceive(NotificationCenter.default.publisher(for: .openDownloads)) { _ in
                 activeSheet = .downloads
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openAlerts)) { _ in
+                activeSheet = .alerts
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openConversations)) { _ in
+                activeSheet = .conversations
             }
             .onReceive(NotificationCenter.default.publisher(for: .openProfile)) { _ in
                 selection = .profile
@@ -219,6 +222,8 @@ struct ContentView: View {
                 }
                 #endif
             }
+
+        return sheetNotifications
             .onReceive(NotificationCenter.default.publisher(for: .printDocument)) { _ in
                 performPrint()
             }
@@ -478,7 +483,7 @@ struct ContentView: View {
         ToolbarItem(placement: .primaryAction) {
             if selection == .downloads {
                 Button("Clear All") {
-                    Task { await DownloadManager.shared.clearAll() }
+                    DownloadManagerV2.shared.knownDownloadIDs.forEach { DownloadManagerV2.shared.clearDownload(id: $0) }
                 }
                 .help("Clear all downloads")
             }
@@ -568,6 +573,17 @@ struct ContentView: View {
     private func goForward() {
         #if os(macOS)
         NSApp.sendAction(Selector(("goForward:")), to: nil, from: nil)
+        #endif
+    }
+
+    private func applyUITestNavigationIfNeeded() {
+        #if DEBUG
+        guard !appliedUITestNavigation else { return }
+        guard UITestLaunchConfiguration.opensResourceOverviewDownloadScenario else { return }
+        appliedUITestNavigation = true
+        selection = .resources
+        detailPath = NavigationPath()
+        detailPath.append(AppNavigationDestination.resource(UITestLaunchConfiguration.seededResourceNavigationContext))
         #endif
     }
 
@@ -780,85 +796,6 @@ struct ConversationsSheet: View {
                 }
             }
         }
-    }
-}
-
-// MARK: DownloadsSheet
-struct DownloadsSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @ObservedObject private var manager = DownloadManagerV2.shared
-
-    var body: some View {
-        NavigationStack {
-            VStack {
-                if manager.downloads.isEmpty {
-                    ContentUnavailableView("No Downloads", systemImage: "arrow.down.circle", description: Text("Start a download elsewhere to see it here."))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(sortedIds(), id: \.self) { id in
-                        if let state = manager.downloads[id] {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text(managerTitle(for: id)).font(.headline)
-                                    Spacer()
-                                    if state.isDownloading {
-                                        Text("Downloading").foregroundStyle(.secondary)
-                                    } else if state.isPaused {
-                                        Text("Paused").foregroundStyle(.secondary)
-                                    } else if state.progress >= 1.0 {
-                                        Text("Completed").foregroundStyle(.secondary)
-                                    } else {
-                                        Text("Idle").foregroundStyle(.secondary)
-                                    }
-                                }
-                                ProgressView(value: state.progress)
-                                HStack(spacing: 12) {
-                                    if state.isDownloading {
-                                        Button("Pause") { manager.pauseDownload(id: id) }
-                                    } else if state.isPaused {
-                                        Button("Resume") { Task { _ = try? await manager.resumeDownload(id: id) } }
-                                    } else if state.progress < 1.0 {
-                                        Button("Resume") { Task { _ = try? await manager.resumeDownload(id: id) } }
-                                    }
-                                    Button("Cancel") { manager.cancelDownload(id: id) }
-                                    if let fileURL = state.fileURL {
-                                        Spacer()
-                                        Text(fileURL.lastPathComponent).lineLimit(1)
-                                    }
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                            .padding(.vertical, 6)
-                        }
-                    }
-                    .listStyle(.inset)
-                }
-            }
-            .navigationTitle("Downloads")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Clear All") {
-                        let ids = Array(manager.downloads.keys)
-                        ids.forEach { manager.clearDownload(id: $0) }
-                    }
-                }
-            }
-        }
-    }
-
-    private func managerTitle(for id: Int) -> String {
-        if let t = manager.title(for: id) { return t }
-        return "Download #\(id)"
-    }
-
-    private func sortedIds() -> [Int] {
-        if let sorted = manager.sortedIds {
-            return sorted
-        }
-        return Array(manager.downloads.keys).sorted()
     }
 }
 

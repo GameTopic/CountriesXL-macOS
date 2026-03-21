@@ -851,6 +851,7 @@ private struct ResourceBrowseCard: View {
                         ResourceDownloadControls(
                             id: resource.id,
                             title: resource.title,
+                            descriptor: .init(kind: .resource, sourceTitle: resource.category),
                             requestProvider: {
                                 try await api.resolvedResourceDownloadRequest(resourceID: resource.id, accessToken: appState.accessToken)
                             }
@@ -1057,6 +1058,8 @@ struct ResourceDetailView: View {
     let resource: XFResource
     let fallbackRelatedResources: [XFResource]
 
+    @Environment(\.openURL) private var openURL
+
     @State private var detailedResource: XFResource?
     @State private var relatedResources: [XFResource] = []
     @State private var isLoadingDetails = false
@@ -1065,6 +1068,7 @@ struct ResourceDetailView: View {
     @State private var selectedImageGallery: ResourceImageGallerySelection?
     @State private var selectedVideo: XFResourceVideo?
     @State private var selectedAudio: ResourceAudioSelection?
+    @State private var showsDownloadsSheet = false
 
     private let api = XenForoAPI()
 
@@ -1222,6 +1226,9 @@ struct ResourceDetailView: View {
                 selectedIndex: selection.index
             )
         }
+        .toolbar {
+            resourceDetailToolbarContent
+        }
     }
 
     private var resourceHeader: some View {
@@ -1304,9 +1311,15 @@ struct ResourceDetailView: View {
                         id: currentResource.id,
                         title: currentResource.title,
                         style: .borderedProminent,
-                        requestProvider: { try await api.resolvedResourceDownloadRequest(resourceID: currentResource.id, accessToken: appState.accessToken) }
+                        descriptor: .init(kind: .resource, sourceTitle: currentResource.category),
+                        accessibilityIdentifier: "resource-overview-download-button",
+                        onStart: { showsDownloadsSheet = true },
+                        requestProvider: { try await resourceDownloadRequest() }
                     )
                     .environmentObject(appState)
+                    .sheet(isPresented: $showsDownloadsSheet) {
+                        DownloadsManagerSheet()
+                    }
 
                     if isLoadingDetails {
                         ProgressView()
@@ -1709,6 +1722,162 @@ struct ResourceDetailView: View {
         }
     }
 
+    private func resourceDownloadRequest() async throws -> URLRequest {
+        #if DEBUG
+        if UITestLaunchConfiguration.opensResourceOverviewDownloadScenario {
+            return UITestLaunchConfiguration.resourceOverviewDownloadRequest()
+        }
+        #endif
+
+        return try await api.resolvedResourceDownloadRequest(resourceID: currentResource.id, accessToken: appState.accessToken)
+    }
+
+    @ToolbarContentBuilder
+    private var resourceDetailToolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .automatic) {
+            Menu {
+                if appState.isAuthenticated {
+                    let name = appState.settings.displayName
+                    if !name.isEmpty {
+                        Text("Signed in as \(name)")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Signed in")
+                            .foregroundStyle(.secondary)
+                    }
+                    Divider()
+
+                    Button {
+                        NotificationCenter.default.post(name: .openProfile, object: nil)
+                    } label: {
+                        Label("View Profile", systemImage: "person.crop.circle")
+                    }
+
+                    Button {
+                        NotificationCenter.default.post(name: .openAlerts, object: nil)
+                    } label: {
+                        Label("Alerts", systemImage: "bell")
+                    }
+
+                    Button {
+                        NotificationCenter.default.post(name: .openConversations, object: nil)
+                    } label: {
+                        Label("Conversations", systemImage: "envelope")
+                    }
+
+                    Button {
+                        NotificationCenter.default.post(name: .openDownloads, object: nil)
+                    } label: {
+                        Label("Downloads", systemImage: "arrow.down.circle")
+                    }
+
+                    Divider()
+
+                    Button {
+                        NotificationCenter.default.post(name: .openMembership, object: nil)
+                    } label: {
+                        Label("Manage Subscription…", systemImage: "creditcard")
+                    }
+
+                    Button {
+                        NotificationCenter.default.post(name: .openSettings, object: nil)
+                    } label: {
+                        Label("Settings…", systemImage: "gearshape")
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive) {
+                        Task { await appState.signOut() }
+                    } label: {
+                        Label("Sign Out", systemImage: "rectangle.portrait.and.arrow.right")
+                    }
+                } else {
+                    Text("Not signed in")
+                        .foregroundStyle(.secondary)
+                    Divider()
+
+                    Button {
+                        NotificationCenter.default.post(name: .openSignIn, object: nil)
+                    } label: {
+                        Label("Sign In…", systemImage: "person.crop.circle")
+                    }
+
+                    Button {
+                        NotificationCenter.default.post(name: .openSettings, object: nil)
+                    } label: {
+                        Label("Settings…", systemImage: "gearshape")
+                    }
+                }
+            } label: {
+                if appState.isAuthenticated, let avatar = appState.userAvatarImage {
+                    Label {
+                        let name = appState.settings.displayName
+                        Text(name.isEmpty ? "My Account" : name)
+                    } icon: {
+                        avatar
+                            .resizable()
+                            .frame(width: 24, height: 24)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.secondary.opacity(0.3), lineWidth: 0.5))
+                    }
+                } else {
+                    Label("My Account", systemImage: "person.circle")
+                }
+            }
+            .labelStyle(.titleAndIcon)
+
+            Button {
+                NotificationCenter.default.post(name: .openAlerts, object: nil)
+            } label: {
+                Label("Alerts", systemImage: "bell")
+            }
+            .labelStyle(.iconOnly)
+
+            Button {
+                NotificationCenter.default.post(name: .openConversations, object: nil)
+            } label: {
+                Label("Conversations", systemImage: "envelope")
+            }
+            .labelStyle(.iconOnly)
+
+            Button {
+                NotificationCenter.default.post(name: .openDownloads, object: nil)
+            } label: {
+                Label("Downloads", systemImage: "arrow.down.circle")
+            }
+            .labelStyle(.iconOnly)
+        }
+
+        ToolbarItem(placement: .automatic) {
+            Menu {
+                if let viewURL = currentResource.viewURL {
+                    Button {
+                        openURL(viewURL)
+                    } label: {
+                        Label("Open Resource", systemImage: "safari")
+                    }
+                }
+
+                Button {
+                    Task { await loadResourceDetail() }
+                } label: {
+                    Label("Refresh Overview", systemImage: "arrow.clockwise")
+                }
+
+                Divider()
+
+                Button {
+                    NotificationCenter.default.post(name: .openSettings, object: nil)
+                } label: {
+                    Label("Settings…", systemImage: "gearshape")
+                }
+            } label: {
+                Label("Options", systemImage: "gearshape")
+            }
+        }
+    }
+
     @ViewBuilder
     private var resourceDetailsSection: some View {
         if hasResourceDetailsContent {
@@ -2001,6 +2170,7 @@ struct ResourceDetailView: View {
                     id: currentResource.id,
                     title: currentResource.title,
                     style: .bordered,
+                    descriptor: .init(kind: .resource, sourceTitle: currentResource.category),
                     requestProvider: { try await api.resolvedResourceDownloadRequest(resourceID: currentResource.id, accessToken: appState.accessToken) }
                 )
                 .environmentObject(appState)

@@ -723,16 +723,8 @@ private struct DownloadsSettingsView: View {
 
             Section(header: Text("History")) {
                 HStack(spacing: 12) {
-                    Button("Clear Download History (Legacy)", role: .destructive) {
-                        Task { await DownloadManager.shared.clearAll() }
-                    }
-                    Button("Clear Download History (Manager V2)", role: .destructive) {
-                        if let ids = DownloadManagerV2.shared.sortedIds {
-                            ids.forEach { DownloadManagerV2.shared.clearDownload(id: $0) }
-                        } else {
-                            let ids = Array(DownloadManagerV2.shared.downloads.keys)
-                            ids.forEach { DownloadManagerV2.shared.clearDownload(id: $0) }
-                        }
+                    Button("Clear Download History", role: .destructive) {
+                        DownloadManagerV2.shared.knownDownloadIDs.forEach { DownloadManagerV2.shared.clearDownload(id: $0) }
                     }
                 }
                 .font(.caption)

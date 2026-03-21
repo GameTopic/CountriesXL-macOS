@@ -1,131 +1,270 @@
 import SwiftUI
-#if canImport(UIKit)
-import UIKit
-#endif
 #if os(macOS)
 import AppKit
 #endif
 
-// A sheet UI that uses DownloadManager with custom Title and URL entry
 struct DownloadsManagerSheet: View {
-    @ObservedObject private var manager = DownloadManagerV2.shared
     @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            DownloadsBrowser(showsManualEntry: false, showsCloseButton: true) {
+                dismiss()
+            }
+        }
+    }
+}
+
+struct DownloadsBrowser: View {
+    @ObservedObject private var manager = DownloadManagerV2.shared
     @State private var urlString: String = "https://speed.hetzner.de/10MB.bin"
     @State private var titleString: String = "Custom Download"
     @State private var nextID: Int = 1
 
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 12) {
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        TextField("Title", text: $titleString)
-                            .textFieldStyle(.roundedBorder)
-                    }
-                    HStack(spacing: 8) {
-                        TextField("Download URL", text: $urlString)
-                            .textFieldStyle(.roundedBorder)
-                        #if os(iOS) || os(tvOS) || os(visionOS)
-                        .autocorrectionDisabled(true)
-                        .textInputAutocapitalization(.never)
-                        #endif
-                        Button {
-                            startDownload()
-                        } label: {
-                            Label("Start", systemImage: "arrow.down.circle")
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                }
-                .padding(.horizontal)
+    let showsManualEntry: Bool
+    let showsCloseButton: Bool
+    let onClose: (() -> Void)?
 
-                if manager.downloads.isEmpty {
-                    ContentUnavailableView("No Downloads", systemImage: "arrow.down.circle", description: Text("Enter a URL and tap Start to begin a download."))
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List(sortedIds(), id: \.self) { id in
-                        if let state = manager.downloads[id] {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text(title(for: id)).font(.headline)
-                                    Spacer()
-                                    if state.isDownloading {
-                                        Text("Downloading").foregroundStyle(.secondary)
-                                    } else if state.isPaused {
-                                        Text("Paused").foregroundStyle(.secondary)
-                                    } else if state.progress >= 1.0 {
-                                        Text("Completed").foregroundStyle(.secondary)
-                                    } else {
-                                        Text("Idle").foregroundStyle(.secondary)
-                                    }
-                                }
-                                ProgressView(value: state.progress)
-                                HStack(spacing: 12) {
-                                    if state.isDownloading {
-                                        Button("Pause") { manager.pauseDownload(id: id) }
-                                    } else if state.isPaused {
-                                        Button("Resume") { Task { _ = try? await manager.resumeDownload(id: id) } }
-                                    } else if state.progress < 1.0 {
-                                        Button("Resume") { Task { _ = try? await manager.resumeDownload(id: id) } }
-                                    }
-                                    Button("Cancel") { manager.cancelDownload(id: id) }
-                                    if let fileURL = state.fileURL {
-                                        Spacer()
-                                        Text(fileURL.lastPathComponent).lineLimit(1)
-                                    }
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                            .padding(.vertical, 6)
-                            .contextMenu {
-                                if let url = manager.url(for: id) {
-                                    Button("Copy URL") {
-                                        #if canImport(UIKit)
-                                        UIPasteboard.general.string = url.absoluteString
-                                        #elseif os(macOS)
-                                        NSPasteboard.general.clearContents()
-                                        NSPasteboard.general.setString(url.absoluteString, forType: .string)
-                                        #endif
-                                    }
-                                }
-                                #if os(macOS)
-                                Button("Reveal in Finder") { manager.revealInFinder(for: id) }
-                                #endif
-                            }
-                        }
-                    }
-                    .listStyle(.inset)
-                }
+    init(
+        showsManualEntry: Bool,
+        showsCloseButton: Bool = false,
+        onClose: (() -> Void)? = nil
+    ) {
+        self.showsManualEntry = showsManualEntry
+        self.showsCloseButton = showsCloseButton
+        self.onClose = onClose
+    }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            infoHeader
+
+            if showsManualEntry {
+                manualEntrySection
             }
-            .navigationTitle("Downloads")
-            .toolbar {
+
+            DownloadsList()
+
+            if let destination = SettingsStore().resolveDownloadURL() {
+                Text("Downloads save to \(destination.path)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal)
+                    .padding(.bottom, 4)
+            }
+        }
+        .navigationTitle("Downloads")
+        .toolbar {
+            if showsCloseButton {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Clear All") {
-                        let ids = Array(manager.downloads.keys)
-                        ids.forEach { manager.clearDownload(id: $0) }
+                    Button("Close") {
+                        onClose?()
                     }
                 }
             }
+            ToolbarItem(placement: .primaryAction) {
+                Button("Clear All") {
+                    manager.knownDownloadIDs.forEach { manager.clearDownload(id: $0) }
+                }
+                .disabled(!manager.hasKnownDownloads)
+            }
+        }
+        .alert(item: $manager.activeAlert) { alert in
+            Alert(title: Text(alert.title), message: Text(alert.message), dismissButton: .default(Text("OK")))
         }
     }
 
-    private func startDownload() {
+    private var infoHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Queued downloads appear here before saving.")
+                .font(.subheadline.weight(.medium))
+            Text("Use Save to download to the app's default folder, or Save As to choose a location.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
+        .padding(.top, 4)
+    }
+
+    private var manualEntrySection: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                TextField("Title", text: $titleString)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            HStack(spacing: 8) {
+                TextField("Download URL", text: $urlString)
+                    .textFieldStyle(.roundedBorder)
+                #if os(iOS) || os(tvOS) || os(visionOS)
+                .autocorrectionDisabled(true)
+                .textInputAutocapitalization(.never)
+                #endif
+
+                Button("Queue") {
+                    queueManualDownload()
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private func queueManualDownload() {
         guard let url = URL(string: urlString) else { return }
         let id = nextID
         nextID += 1
         let title = titleString.isEmpty ? "Download #\(id)" : titleString
-        Task { _ = try? await manager.startDownload(id: id, title: title, url: url) }
+        let descriptor = DownloadManagerV2.DownloadDescriptor(kind: .generic, sourceTitle: "Manual")
+        manager.queueDownload(id: id, title: title, url: url, descriptor: descriptor)
+    }
+}
+
+struct DownloadsList: View {
+    @ObservedObject private var manager = DownloadManagerV2.shared
+
+    var body: some View {
+        if !manager.hasKnownDownloads {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("No downloads yet")
+                    .font(.headline)
+                Text("Resource, media, and file downloads will show up here after you press Download.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Completed files stay available for Run, Install, Save As, or Delete File.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(.horizontal)
+            .padding(.top, 8)
+        } else {
+            List(manager.knownDownloadIDs, id: \.self) { id in
+                DownloadRow(id: id)
+            }
+            .listStyle(.inset)
+        }
+    }
+}
+
+private struct DownloadRow: View {
+    @ObservedObject private var manager = DownloadManagerV2.shared
+
+    let id: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(manager.title(for: id) ?? "Download #\(id)")
+                        .font(.headline)
+
+                    if let fileURL = manager.fileURL(for: id) {
+                        Text(fileURL.lastPathComponent)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    } else if let url = manager.url(for: id) {
+                        Text(url.absoluteString)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer()
+
+                Text(manager.statusText(for: id))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            ProgressView(value: progressValue)
+
+            HStack(spacing: 10) {
+                controls
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(.vertical, 6)
     }
 
-    private func sortedIds() -> [Int] {
-        if let sorted = manager.sortedIds { return sorted }
-        return Array(manager.downloads.keys).sorted()
+    @ViewBuilder
+    private var controls: some View {
+        if manager.isCompleted(id: id) {
+            #if os(macOS)
+            Button(manager.actionTitle(for: id)) {
+                manager.openDownloadedFile(for: id)
+            }
+            Button("Save As") {
+                manager.saveDownloadAs(for: id)
+            }
+            #endif
+            Button("Delete File") {
+                #if os(macOS)
+                manager.deleteDownloadedFile(for: id)
+                #else
+                manager.clearDownload(id: id)
+                #endif
+            }
+        } else if let state = manager.downloads[id], state.isPreparing {
+            ProgressView()
+                .controlSize(.small)
+            Text("Preparing download link…")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Cancel") {
+                manager.cancelDownload(id: id)
+            }
+        } else if let state = manager.downloads[id], state.isQueued {
+            Button("Save") {
+                Task { if manager.canStartQueuedDownload(id: id) { _ = try? await manager.startQueuedDownload(id: id) } }
+            }
+            .accessibilityIdentifier("download-save-\(id)")
+            .disabled(!manager.canStartQueuedDownload(id: id))
+            #if os(macOS)
+            Button("Save As") {
+                Task { if manager.canStartQueuedDownload(id: id) { await manager.startQueuedDownloadWithSavePanel(for: id) } }
+            }
+            .accessibilityIdentifier("download-save-as-\(id)")
+            .disabled(!manager.canStartQueuedDownload(id: id))
+            #endif
+            Button("Cancel") {
+                manager.cancelDownload(id: id)
+            }
+            .accessibilityIdentifier("download-cancel-\(id)")
+        } else if let state = manager.downloads[id], state.isDownloading {
+            Button("Pause") {
+                manager.pauseDownload(id: id)
+            }
+            Button("Cancel") {
+                manager.cancelDownload(id: id)
+            }
+        } else if let state = manager.downloads[id], state.isPaused {
+            Button("Resume") {
+                Task { _ = try? await manager.resumeDownload(id: id) }
+            }
+            Button("Cancel") {
+                manager.cancelDownload(id: id)
+            }
+        } else {
+            Button("Save") {
+                Task { _ = try? await manager.startQueuedDownload(id: id) }
+            }
+            .accessibilityIdentifier("download-save-\(id)")
+            Button("Cancel") {
+                manager.cancelDownload(id: id)
+            }
+            .accessibilityIdentifier("download-cancel-\(id)")
+        }
     }
 
-    private func title(for id: Int) -> String {
-        manager.title(for: id) ?? "Download #\(id)"
+    private var progressValue: Double {
+        if let state = manager.downloads[id] {
+            return state.progress
+        }
+        return manager.isCompleted(id: id) ? 1.0 : 0.0
     }
 }
