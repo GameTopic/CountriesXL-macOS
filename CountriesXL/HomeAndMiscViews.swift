@@ -388,12 +388,16 @@ struct SavedItemsView: View {
                         savedTypePicker
                         CopyItemListButton(items: filteredItems)
                             .buttonStyle(.bordered)
+                        clearSavedButton
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
                         savedTypePicker
-                        CopyItemListButton(items: filteredItems)
-                            .buttonStyle(.bordered)
+                        HStack(spacing: 12) {
+                            CopyItemListButton(items: filteredItems)
+                                .buttonStyle(.bordered)
+                            clearSavedButton
+                        }
                     }
                 }
 
@@ -430,6 +434,16 @@ struct SavedItemsView: View {
             }
         }
         .pickerStyle(.segmented)
+    }
+
+    private var clearSavedButton: some View {
+        Button(role: .destructive) {
+            appState.clearSavedItems()
+        } label: {
+            Label("Clear Saved", systemImage: "trash")
+        }
+        .buttonStyle(.bordered)
+        .disabled(appState.savedItems.isEmpty)
     }
 }
 

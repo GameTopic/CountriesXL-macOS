@@ -116,6 +116,11 @@ final class AppState: ObservableObject {
         persistSavedItems()
     }
 
+    func clearSavedItems() {
+        savedItems.removeAll()
+        persistSavedItems()
+    }
+
     func recordRecentlyViewed(_ item: SavedItem) {
         var updatedItem = item
         updatedItem.savedAt = Date()
