@@ -54,6 +54,7 @@ struct ContentView: View {
 
     @StateObject private var alertsService = AlertsService()
     @StateObject private var conversationsService = ConversationsService()
+    @StateObject private var savedItems = SavedItemsStore.shared
     @AppStorage("showDisconnectedOverlay") private var showDisconnectedOverlay: Bool = true
     @State private var showSignInPopover: Bool = false
     @State private var detailPath = NavigationPath()
@@ -85,7 +86,7 @@ struct ContentView: View {
     }
 
     private var sidebarView: some View {
-        let sidebarItems: [SidebarItem] = [.discover, .home, .forums, .resources, .media]
+        let sidebarItems: [SidebarItem] = [.discover, .home, .saved, .forums, .resources, .media]
         return List(sidebarItems, selection: $selection) { item in
             NavigationLink(value: item) {
                 HStack(spacing: 6) {
@@ -139,6 +140,7 @@ struct ContentView: View {
     private func applyPrimaryModifiers<V: View>(_ view: V) -> some View {
         view
             .environmentObject(appState)
+            .environmentObject(savedItems)
             .toolbar { toolbarContent }
             .searchable(text: $searchText, placement: .toolbar, prompt: Text("Search resources, media, threads, users"))
             .onSubmit(of: .search) {
@@ -497,6 +499,10 @@ struct ContentView: View {
             DiscoverView()
         case .home:
             HomeView()
+        case .saved:
+            SavedItemsView { item in
+                Task { await openSavedItem(item) }
+            }
         case .forums:
             ForumsView()
         case .resources:
@@ -593,6 +599,8 @@ struct ContentView: View {
             return AnyView(DiscoverView().environmentObject(appState))
         case .home:
             return AnyView(HomeView().environmentObject(appState))
+        case .saved:
+            return AnyView(SavedItemsView { _ in }.environmentObject(appState).environmentObject(savedItems))
         case .forums:
             return AnyView(ForumsView().environmentObject(appState))
         case .resources:
@@ -635,6 +643,31 @@ struct ContentView: View {
         pageLayout.beginSheet(with: printInfo, modalFor: window, delegate: nil, didEnd: nil, contextInfo: nil)
         #endif
     }
+
+    @MainActor
+    private func openSavedItem(_ item: SavedItem) async {
+        do {
+            switch item.kind {
+            case .resource:
+                let resource = try await XenForoAPI().getResource(id: item.itemID, accessToken: appState.accessToken)
+                detailPath.append(AppNavigationDestination.resource(ResourceNavigationContext(resource: resource, fallbackRelatedResources: [])))
+            case .media:
+                let media = try await XenForoAPI().getMedia(id: item.itemID, accessToken: appState.accessToken)
+                detailPath.append(AppNavigationDestination.media(media))
+            case .thread:
+                let thread = try await XenForoAPI().getThread(id: item.itemID, accessToken: appState.accessToken)
+                detailPath.append(AppNavigationDestination.thread(thread))
+            }
+        } catch {
+            if let linkURL = item.linkURL {
+                #if canImport(UIKit)
+                UIApplication.shared.open(linkURL)
+                #elseif os(macOS)
+                NSWorkspace.shared.open(linkURL)
+                #endif
+            }
+        }
+    }
 }
 
 // MARK: - Sidebar Routing
@@ -642,6 +675,7 @@ struct ContentView: View {
 enum SidebarItem: String, CaseIterable, Identifiable {
     case discover
     case home
+    case saved
     case forums
     case resources
     case media
@@ -655,6 +689,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .discover: return "Discover"
         case .home: return "Home"
+        case .saved: return "Saved"
         case .forums: return "Forums"
         case .resources: return "Resources"
         case .media: return "Media"
@@ -668,6 +703,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .discover: return "safari"
         case .home: return "house"
+        case .saved: return "bookmark"
         case .forums: return "text.bubble"
         case .resources: return "shippingbox"
         case .media: return "photo.on.rectangle.angled"

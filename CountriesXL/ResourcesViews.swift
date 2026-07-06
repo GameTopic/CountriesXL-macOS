@@ -1059,6 +1059,7 @@ struct ResourceDetailView: View {
     let fallbackRelatedResources: [XFResource]
 
     @Environment(\.openURL) private var openURL
+    @EnvironmentObject private var savedItems: SavedItemsStore
 
     @State private var detailedResource: XFResource?
     @State private var relatedResources: [XFResource] = []
@@ -1734,6 +1735,18 @@ struct ResourceDetailView: View {
 
     @ToolbarContentBuilder
     private var resourceDetailToolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Button {
+                savedItems.toggle(resource: currentResource)
+            } label: {
+                Label(
+                    savedItems.isSaved(kind: .resource, id: currentResource.id) ? "Saved" : "Save",
+                    systemImage: savedItems.isSaved(kind: .resource, id: currentResource.id) ? "bookmark.fill" : "bookmark"
+                )
+            }
+            .help(savedItems.isSaved(kind: .resource, id: currentResource.id) ? "Remove from Saved" : "Save resource")
+        }
+
         ToolbarItemGroup(placement: .automatic) {
             Menu {
                 if appState.isAuthenticated {
