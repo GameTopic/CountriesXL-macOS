@@ -28,6 +28,7 @@ final class AppState: ObservableObject {
     @Published var showSettings: Bool = false
     @Published var searchQuery: String = ""
     @Published private(set) var savedItems: [SavedItem] = []
+    @Published private(set) var recentItems: [SavedItem] = []
 
     // Media view preferences controlled from the toolbar options menu
     @AppStorage("mediaSortOptionRaw") private var mediaSortRaw: String = MediaSortOption.dateDesc.rawValue
@@ -56,6 +57,7 @@ final class AppState: ObservableObject {
         self.showSettings = false
         self.searchQuery = ""
         self.savedItems = Self.loadSavedItems()
+        self.recentItems = Self.loadRecentItems()
         self.userAvatarImage = nil
         self.settings = SettingsService.shared.settings
 
@@ -114,9 +116,35 @@ final class AppState: ObservableObject {
         persistSavedItems()
     }
 
+    func recordRecentlyViewed(_ item: SavedItem) {
+        var updatedItem = item
+        updatedItem.savedAt = Date()
+        recentItems.removeAll { $0.kind == item.kind && $0.sourceID == item.sourceID }
+        recentItems.insert(updatedItem, at: 0)
+        if recentItems.count > 30 {
+            recentItems = Array(recentItems.prefix(30))
+        }
+        persistRecentItems()
+    }
+
+    func clearRecentItems() {
+        recentItems.removeAll()
+        persistRecentItems()
+    }
+
+    func removeRecentItem(_ item: SavedItem) {
+        recentItems.removeAll { $0.kind == item.kind && $0.sourceID == item.sourceID }
+        persistRecentItems()
+    }
+
     private func persistSavedItems() {
         guard let data = try? JSONEncoder().encode(savedItems) else { return }
         UserDefaults.standard.set(data, forKey: Self.savedItemsDefaultsKey)
+    }
+
+    private func persistRecentItems() {
+        guard let data = try? JSONEncoder().encode(recentItems) else { return }
+        UserDefaults.standard.set(data, forKey: Self.recentItemsDefaultsKey)
     }
 
     private static func loadSavedItems() -> [SavedItem] {
@@ -128,5 +156,15 @@ final class AppState: ObservableObject {
         return items
     }
 
+    private static func loadRecentItems() -> [SavedItem] {
+        guard let data = UserDefaults.standard.data(forKey: recentItemsDefaultsKey),
+              let items = try? JSONDecoder().decode([SavedItem].self, from: data) else {
+            return []
+        }
+
+        return items
+    }
+
     private static let savedItemsDefaultsKey = "savedItems.v1"
+    private static let recentItemsDefaultsKey = "recentItems.v1"
 }

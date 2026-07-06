@@ -85,7 +85,7 @@ struct ContentView: View {
     }
 
     private var sidebarView: some View {
-        let sidebarItems: [SidebarItem] = [.discover, .home, .saved, .forums, .resources, .media]
+        let sidebarItems: [SidebarItem] = [.discover, .home, .saved, .recent, .forums, .resources, .media]
         return List(sidebarItems, selection: $selection) { item in
             NavigationLink(value: item) {
                 HStack(spacing: 6) {
@@ -499,6 +499,8 @@ struct ContentView: View {
             HomeView()
         case .saved:
             SavedItemsView()
+        case .recent:
+            RecentItemsView()
         case .forums:
             ForumsView()
         case .resources:
@@ -597,6 +599,8 @@ struct ContentView: View {
             return AnyView(HomeView().environmentObject(appState))
         case .saved:
             return AnyView(SavedItemsView().environmentObject(appState))
+        case .recent:
+            return AnyView(RecentItemsView().environmentObject(appState))
         case .forums:
             return AnyView(ForumsView().environmentObject(appState))
         case .resources:
@@ -647,6 +651,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
     case discover
     case home
     case saved
+    case recent
     case forums
     case resources
     case media
@@ -661,6 +666,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .discover: return "Discover"
         case .home: return "Home"
         case .saved: return "Saved"
+        case .recent: return "Recent"
         case .forums: return "Forums"
         case .resources: return "Resources"
         case .media: return "Media"
@@ -675,6 +681,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         case .discover: return "safari"
         case .home: return "house"
         case .saved: return "bookmark"
+        case .recent: return "clock"
         case .forums: return "text.bubble"
         case .resources: return "shippingbox"
         case .media: return "photo.on.rectangle.angled"

@@ -1221,7 +1221,11 @@ struct ResourceDetailView: View {
             )
         }
         .navigationTitle("Resource")
-        .task(id: resource.id) { await loadResourceDetail() }
+        .task(id: resource.id) {
+            appState.recordRecentlyViewed(SavedItem(resource: resource))
+            await loadResourceDetail()
+            appState.recordRecentlyViewed(savedItem)
+        }
         .sheet(item: $selectedVideo) { video in
             ResourceVideoPlayerSheet(video: video)
         }

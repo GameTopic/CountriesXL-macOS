@@ -305,7 +305,12 @@ struct SavedItemsView: View {
                 } else {
                     LazyVStack(spacing: 12) {
                         ForEach(filteredItems) { item in
-                            SavedItemRow(item: item) {
+                            SavedItemRow(
+                                item: item,
+                                actionTitle: "Remove",
+                                actionSystemImage: "trash",
+                                actionHelp: "Remove from Saved"
+                            ) {
                                 appState.removeSavedItem(item)
                             }
                         }
@@ -318,21 +323,109 @@ struct SavedItemsView: View {
     }
 }
 
+struct RecentItemsView: View {
+    @EnvironmentObject private var appState: AppState
+    @State private var selectedKind: SavedItemKind?
+
+    private var filteredItems: [SavedItem] {
+        guard let selectedKind else { return appState.recentItems }
+        return appState.recentItems.filter { $0.kind == selectedKind }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                ContentHeaderCard(
+                    title: "Recent",
+                    subtitle: "Items you opened recently, kept here automatically."
+                ) {
+                    HStack(spacing: 12) {
+                        StatBadge(label: "Total", value: appState.recentItems.count.formatted())
+                        ForEach(SavedItemKind.allCases) { kind in
+                            StatBadge(
+                                label: kind.title,
+                                value: appState.recentItems.filter { $0.kind == kind }.count.formatted()
+                            )
+                        }
+                    }
+                }
+
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) {
+                        recentTypePicker
+                        clearRecentButton
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        recentTypePicker
+                        clearRecentButton
+                    }
+                }
+
+                if filteredItems.isEmpty {
+                    EmptyStateCard(
+                        title: selectedKind == nil ? "No recent items yet" : "No recent \(selectedKind?.title.lowercased() ?? "items")",
+                        message: "Open resources, media, or threads and they will appear here automatically."
+                    )
+                } else {
+                    LazyVStack(spacing: 12) {
+                        ForEach(filteredItems) { item in
+                            SavedItemRow(
+                                item: item,
+                                actionTitle: "Remove",
+                                actionSystemImage: "xmark",
+                                actionHelp: "Remove from Recent"
+                            ) {
+                                appState.removeRecentItem(item)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(24)
+        }
+        .navigationTitle("Recent")
+    }
+
+    private var recentTypePicker: some View {
+        Picker("Recent Type", selection: $selectedKind) {
+            Text("All").tag(nil as SavedItemKind?)
+            ForEach(SavedItemKind.allCases) { kind in
+                Label(kind.title, systemImage: kind.systemImage).tag(kind as SavedItemKind?)
+            }
+        }
+        .pickerStyle(.segmented)
+    }
+
+    private var clearRecentButton: some View {
+        Button(role: .destructive) {
+            appState.clearRecentItems()
+        } label: {
+            Label("Clear Recent", systemImage: "trash")
+        }
+        .buttonStyle(.bordered)
+        .disabled(appState.recentItems.isEmpty)
+    }
+}
+
 private struct SavedItemRow: View {
     let item: SavedItem
-    let remove: () -> Void
+    let actionTitle: String
+    let actionSystemImage: String
+    let actionHelp: String
+    let action: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
             savedNavigationLink
                 .buttonStyle(.plain)
 
-            Button(role: .destructive, action: remove) {
-                Label("Remove", systemImage: "trash")
+            Button(role: .destructive, action: action) {
+                Label(actionTitle, systemImage: actionSystemImage)
             }
             .labelStyle(.iconOnly)
             .buttonStyle(.borderless)
-            .help("Remove from Saved")
+            .help(actionHelp)
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1315,7 +1408,10 @@ struct ThreadDetailView: View {
             .padding(24)
         }
         .navigationTitle("Thread")
-        .task { await loadPosts() }
+        .task {
+            appState.recordRecentlyViewed(savedItem)
+            await loadPosts()
+        }
     }
 
     private func loadPosts(forceRefresh: Bool = false) async {
@@ -1454,7 +1550,11 @@ struct MediaDetailView: View {
             }
         }
         .navigationTitle("Media")
-        .task { await loadMediaDetail() }
+        .task {
+            appState.recordRecentlyViewed(SavedItem(media: media))
+            await loadMediaDetail()
+            appState.recordRecentlyViewed(savedItem)
+        }
     }
 
     private func loadMediaDetail(forceRefresh: Bool = false) async {
