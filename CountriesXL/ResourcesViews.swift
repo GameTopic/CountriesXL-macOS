@@ -1327,6 +1327,11 @@ struct ResourceDetailView: View {
                     .buttonStyle(.bordered)
                     .accessibilityLabel(isSaved ? "Remove resource from Saved" : "Save resource")
 
+                    if let viewURL = currentResource.viewURL {
+                        CopyLinkButton(url: viewURL)
+                            .buttonStyle(.bordered)
+                    }
+
                     DownloadButton(
                         id: currentResource.id,
                         title: currentResource.title,
@@ -2045,6 +2050,9 @@ struct ResourceDetailView: View {
                         sidebarLinkLabel(title: "Open Resource", subtitle: viewURL.host, systemImage: "safari")
                     }
                     .buttonStyle(.plain)
+
+                    CopyLinkButton(url: viewURL, title: "Copy Resource Link")
+                        .buttonStyle(.plain)
                 }
 
                 Button {

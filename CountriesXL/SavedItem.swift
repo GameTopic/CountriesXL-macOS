@@ -36,6 +36,7 @@ struct SavedItem: Identifiable, Codable, Hashable {
     var savedAt: Date
 
     var id: String { "\(kind.rawValue)-\(sourceID)" }
+    var shareURL: URL? { targetURL ?? mediaURL }
 
     init(
         kind: SavedItemKind,
@@ -90,7 +91,8 @@ struct SavedItem: Identifiable, Codable, Hashable {
             sourceID: thread.id,
             title: thread.title,
             subtitle: "by \(thread.author)",
-            detail: "\(thread.replyCount.formatted()) replies - \(thread.viewCount.formatted()) views"
+            detail: "\(thread.replyCount.formatted()) replies - \(thread.viewCount.formatted()) views",
+            targetURL: URL(string: "https://cities-mods.com/threads/\(thread.id)/")
         )
     }
 

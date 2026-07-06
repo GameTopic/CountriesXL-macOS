@@ -420,6 +420,13 @@ private struct SavedItemRow: View {
             savedNavigationLink
                 .buttonStyle(.plain)
 
+            if let shareURL = item.shareURL {
+                CopyLinkButton(url: shareURL)
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
+                    .help("Copy link")
+            }
+
             Button(role: .destructive, action: action) {
                 Label(actionTitle, systemImage: actionSystemImage)
             }
@@ -1370,6 +1377,7 @@ struct ThreadDetailView: View {
     private let api = XenForoAPI()
     private var savedItem: SavedItem { SavedItem(thread: thread) }
     private var isSaved: Bool { appState.isSaved(savedItem) }
+    private var threadURL: URL? { savedItem.shareURL }
 
     var body: some View {
         ScrollView {
@@ -1382,11 +1390,15 @@ struct ThreadDetailView: View {
                         HStack(spacing: 12) {
                             threadStats
                             saveThreadButton
+                            copyThreadLinkButton
                         }
 
                         VStack(alignment: .leading, spacing: 12) {
                             threadStats
-                            saveThreadButton
+                            HStack(spacing: 12) {
+                                saveThreadButton
+                                copyThreadLinkButton
+                            }
                         }
                     }
                 }
@@ -1446,6 +1458,14 @@ struct ThreadDetailView: View {
         }
         .buttonStyle(.bordered)
         .accessibilityLabel(isSaved ? "Remove thread from Saved" : "Save thread")
+    }
+
+    @ViewBuilder
+    private var copyThreadLinkButton: some View {
+        if let threadURL {
+            CopyLinkButton(url: threadURL)
+                .buttonStyle(.bordered)
+        }
     }
 }
 
@@ -1519,6 +1539,9 @@ struct MediaDetailView: View {
                             }
                             .buttonStyle(.borderedProminent)
                             .accessibilityLabel(isSaved ? "Remove media from Saved" : "Save media")
+
+                            CopyLinkButton(url: mediaItem.viewURL ?? mediaItem.mediaURL)
+                                .buttonStyle(.bordered)
 
                             Link(destination: mediaItem.viewURL ?? mediaItem.mediaURL) {
                                 Label("Open In Browser", systemImage: "safari")
