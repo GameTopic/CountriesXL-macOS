@@ -26,6 +26,8 @@ struct HomeView: View {
                     }
                 }
 
+                homeLibraryShortcuts
+
                 if let errorMessage {
                     InlineErrorCard(message: errorMessage) {
                         Task { await loadDashboard(forceRefresh: true) }
@@ -74,6 +76,75 @@ struct HomeView: View {
         .task { await loadDashboard() }
     }
 
+    @ViewBuilder
+    private var homeLibraryShortcuts: some View {
+        if !appState.recentItems.isEmpty || !appState.savedItems.isEmpty {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 18) {
+                    if !appState.recentItems.isEmpty {
+                        recentPreview
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    if !appState.savedItems.isEmpty {
+                        savedPreview
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 18) {
+                    if !appState.recentItems.isEmpty {
+                        recentPreview
+                    }
+                    if !appState.savedItems.isEmpty {
+                        savedPreview
+                    }
+                }
+            }
+        }
+    }
+
+    private var recentPreview: some View {
+        HomeLibraryPreviewSection(
+            title: "Continue",
+            actionTitle: "See All",
+            action: {
+                NotificationCenter.default.post(name: .openRecent, object: nil)
+            }
+        ) {
+            ForEach(appState.recentItems.prefix(3)) { item in
+                SavedItemRow(
+                    item: item,
+                    actionTitle: "Remove",
+                    actionSystemImage: "xmark",
+                    actionHelp: "Remove from Recent"
+                ) {
+                    appState.removeRecentItem(item)
+                }
+            }
+        }
+    }
+
+    private var savedPreview: some View {
+        HomeLibraryPreviewSection(
+            title: "Saved for Later",
+            actionTitle: "See All",
+            action: {
+                NotificationCenter.default.post(name: .openSaved, object: nil)
+            }
+        ) {
+            ForEach(appState.savedItems.prefix(3)) { item in
+                SavedItemRow(
+                    item: item,
+                    actionTitle: "Remove",
+                    actionSystemImage: "trash",
+                    actionHelp: "Remove from Saved"
+                ) {
+                    appState.removeSavedItem(item)
+                }
+            }
+        }
+    }
+
     private func loadDashboard(forceRefresh: Bool = false) async {
         guard !isLoading || forceRefresh else { return }
         isLoading = true
@@ -100,6 +171,29 @@ struct HomeView: View {
             )
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+}
+
+private struct HomeLibraryPreviewSection<Content: View>: View {
+    let title: String
+    let actionTitle: String
+    let action: () -> Void
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(title)
+                    .font(.title3.weight(.semibold))
+                Spacer()
+                Button(actionTitle, action: action)
+                    .buttonStyle(.borderless)
+            }
+
+            VStack(spacing: 12) {
+                content
+            }
         }
     }
 }

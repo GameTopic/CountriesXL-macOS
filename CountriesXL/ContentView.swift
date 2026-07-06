@@ -209,6 +209,14 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: .openProfile)) { _ in
                 selection = .profile
             }
+            .onReceive(NotificationCenter.default.publisher(for: .openSaved)) { _ in
+                selection = .saved
+                detailPath = NavigationPath()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openRecent)) { _ in
+                selection = .recent
+                detailPath = NavigationPath()
+            }
             .onReceive(NotificationCenter.default.publisher(for: .openSignIn)) { _ in
                 activeSheet = .auth
             }

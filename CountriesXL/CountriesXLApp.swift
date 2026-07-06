@@ -240,6 +240,8 @@ extension Notification.Name {
     static let openConversations = Notification.Name("CountriesXL.openConversations")
     static let openDownloads = Notification.Name("CountriesXL.openDownloads")
     static let openProfile = Notification.Name("CountriesXL.openProfile")
+    static let openSaved = Notification.Name("CountriesXL.openSaved")
+    static let openRecent = Notification.Name("CountriesXL.openRecent")
     static let openSignIn = Notification.Name("CountriesXL.openSignIn")
     static let openSettings = Notification.Name("CountriesXL.openSettings")
     static let printDocument = Notification.Name("CountriesXL.printDocument")
