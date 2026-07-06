@@ -85,7 +85,7 @@ struct ContentView: View {
     }
 
     private var sidebarView: some View {
-        let sidebarItems: [SidebarItem] = [.discover, .home, .forums, .resources, .media]
+        let sidebarItems: [SidebarItem] = [.discover, .home, .saved, .forums, .resources, .media]
         return List(sidebarItems, selection: $selection) { item in
             NavigationLink(value: item) {
                 HStack(spacing: 6) {
@@ -497,6 +497,8 @@ struct ContentView: View {
             DiscoverView()
         case .home:
             HomeView()
+        case .saved:
+            SavedItemsView()
         case .forums:
             ForumsView()
         case .resources:
@@ -593,6 +595,8 @@ struct ContentView: View {
             return AnyView(DiscoverView().environmentObject(appState))
         case .home:
             return AnyView(HomeView().environmentObject(appState))
+        case .saved:
+            return AnyView(SavedItemsView().environmentObject(appState))
         case .forums:
             return AnyView(ForumsView().environmentObject(appState))
         case .resources:
@@ -642,6 +646,7 @@ struct ContentView: View {
 enum SidebarItem: String, CaseIterable, Identifiable {
     case discover
     case home
+    case saved
     case forums
     case resources
     case media
@@ -655,6 +660,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .discover: return "Discover"
         case .home: return "Home"
+        case .saved: return "Saved"
         case .forums: return "Forums"
         case .resources: return "Resources"
         case .media: return "Media"
@@ -668,6 +674,7 @@ enum SidebarItem: String, CaseIterable, Identifiable {
         switch self {
         case .discover: return "safari"
         case .home: return "house"
+        case .saved: return "bookmark"
         case .forums: return "text.bubble"
         case .resources: return "shippingbox"
         case .media: return "photo.on.rectangle.angled"

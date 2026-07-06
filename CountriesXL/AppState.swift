@@ -27,6 +27,7 @@ final class AppState: ObservableObject {
     // UI state
     @Published var showSettings: Bool = false
     @Published var searchQuery: String = ""
+    @Published private(set) var savedItems: [SavedItem] = []
 
     // Media view preferences controlled from the toolbar options menu
     @AppStorage("mediaSortOptionRaw") private var mediaSortRaw: String = MediaSortOption.dateDesc.rawValue
@@ -54,6 +55,7 @@ final class AppState: ObservableObject {
         self.isAuthenticated = AuthManager.shared.isAuthenticated
         self.showSettings = false
         self.searchQuery = ""
+        self.savedItems = Self.loadSavedItems()
         self.userAvatarImage = nil
         self.settings = SettingsService.shared.settings
 
@@ -92,4 +94,39 @@ final class AppState: ObservableObject {
         AuthManager.shared.signOut()
         userAvatarImage = nil
     }
+
+    func isSaved(_ item: SavedItem) -> Bool {
+        savedItems.contains { $0.kind == item.kind && $0.sourceID == item.sourceID }
+    }
+
+    func toggleSaved(_ item: SavedItem) {
+        if let index = savedItems.firstIndex(where: { $0.kind == item.kind && $0.sourceID == item.sourceID }) {
+            savedItems.remove(at: index)
+        } else {
+            savedItems.insert(item, at: 0)
+        }
+
+        persistSavedItems()
+    }
+
+    func removeSavedItem(_ item: SavedItem) {
+        savedItems.removeAll { $0.kind == item.kind && $0.sourceID == item.sourceID }
+        persistSavedItems()
+    }
+
+    private func persistSavedItems() {
+        guard let data = try? JSONEncoder().encode(savedItems) else { return }
+        UserDefaults.standard.set(data, forKey: Self.savedItemsDefaultsKey)
+    }
+
+    private static func loadSavedItems() -> [SavedItem] {
+        guard let data = UserDefaults.standard.data(forKey: savedItemsDefaultsKey),
+              let items = try? JSONDecoder().decode([SavedItem].self, from: data) else {
+            return []
+        }
+
+        return items
+    }
+
+    private static let savedItemsDefaultsKey = "savedItems.v1"
 }

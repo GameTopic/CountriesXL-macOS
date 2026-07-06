@@ -1082,6 +1082,14 @@ struct ResourceDetailView: View {
         detailedResource ?? resource
     }
 
+    private var savedItem: SavedItem {
+        SavedItem(resource: currentResource)
+    }
+
+    private var isSaved: Bool {
+        appState.isSaved(savedItem)
+    }
+
     private var sidebarFacts: [ResourceFact] {
         var facts: [ResourceFact] = []
 
@@ -1307,6 +1315,14 @@ struct ResourceDetailView: View {
                 Spacer(minLength: 0)
 
                 VStack(alignment: .trailing, spacing: 12) {
+                    Button {
+                        appState.toggleSaved(savedItem)
+                    } label: {
+                        Label(isSaved ? "Saved" : "Save", systemImage: isSaved ? "bookmark.fill" : "bookmark")
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel(isSaved ? "Remove resource from Saved" : "Save resource")
+
                     DownloadButton(
                         id: currentResource.id,
                         title: currentResource.title,

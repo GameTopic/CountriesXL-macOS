@@ -262,6 +262,164 @@ struct DiscoverView: View {
     }
 }
 
+struct SavedItemsView: View {
+    @EnvironmentObject private var appState: AppState
+    @State private var selectedKind: SavedItemKind?
+
+    private var filteredItems: [SavedItem] {
+        guard let selectedKind else { return appState.savedItems }
+        return appState.savedItems.filter { $0.kind == selectedKind }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                ContentHeaderCard(
+                    title: "Saved",
+                    subtitle: "Bookmarks for resources, media, and discussions you want to revisit."
+                ) {
+                    HStack(spacing: 12) {
+                        StatBadge(label: "Total", value: appState.savedItems.count.formatted())
+                        ForEach(SavedItemKind.allCases) { kind in
+                            StatBadge(
+                                label: kind.title,
+                                value: appState.savedItems.filter { $0.kind == kind }.count.formatted()
+                            )
+                        }
+                    }
+                }
+
+                Picker("Saved Type", selection: $selectedKind) {
+                    Text("All").tag(nil as SavedItemKind?)
+                    ForEach(SavedItemKind.allCases) { kind in
+                        Label(kind.title, systemImage: kind.systemImage).tag(kind as SavedItemKind?)
+                    }
+                }
+                .pickerStyle(.segmented)
+
+                if filteredItems.isEmpty {
+                    EmptyStateCard(
+                        title: selectedKind == nil ? "Nothing saved yet" : "No saved \(selectedKind?.title.lowercased() ?? "items")",
+                        message: "Use the bookmark button on resource, media, and thread detail pages to keep useful items here."
+                    )
+                } else {
+                    LazyVStack(spacing: 12) {
+                        ForEach(filteredItems) { item in
+                            SavedItemRow(item: item) {
+                                appState.removeSavedItem(item)
+                            }
+                        }
+                    }
+                }
+            }
+            .padding(24)
+        }
+        .navigationTitle("Saved")
+    }
+}
+
+private struct SavedItemRow: View {
+    let item: SavedItem
+    let remove: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            savedNavigationLink
+                .buttonStyle(.plain)
+
+            Button(role: .destructive, action: remove) {
+                Label("Remove", systemImage: "trash")
+            }
+            .labelStyle(.iconOnly)
+            .buttonStyle(.borderless)
+            .help("Remove from Saved")
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(Color.black.opacity(0.06), lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private var savedNavigationLink: some View {
+        switch item.kind {
+        case .resource:
+            NavigationLink(
+                value: AppNavigationDestination.resource(
+                    ResourceNavigationContext(resource: item.resource, fallbackRelatedResources: [])
+                )
+            ) {
+                rowContent
+            }
+        case .media:
+            if let media = item.media {
+                NavigationLink(value: AppNavigationDestination.media(media)) {
+                    rowContent
+                }
+            } else {
+                rowContent
+            }
+        case .thread:
+            NavigationLink(value: AppNavigationDestination.thread(item.thread)) {
+                rowContent
+            }
+        }
+    }
+
+    private var rowContent: some View {
+        HStack(spacing: 12) {
+            AsyncImage(url: item.imageURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 72, height: 46)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                default:
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(Color.accentColor.opacity(0.10))
+                        .frame(width: 72, height: 46)
+                        .overlay(Image(systemName: item.kind.systemImage))
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(item.title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+
+                if let subtitle = item.subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let detail = item.detail, !detail.isEmpty {
+                    Text(detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 6) {
+                Label(item.kind.title, systemImage: item.kind.systemImage)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(item.savedAt.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
 struct ForumsView: View {
     @EnvironmentObject private var appState: AppState
     @State private var threads: [XFThread] = []
@@ -1117,6 +1275,8 @@ struct ThreadDetailView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     private let api = XenForoAPI()
+    private var savedItem: SavedItem { SavedItem(thread: thread) }
+    private var isSaved: Bool { appState.isSaved(savedItem) }
 
     var body: some View {
         ScrollView {
@@ -1125,11 +1285,15 @@ struct ThreadDetailView: View {
                     title: thread.title,
                     subtitle: "Started by \(thread.author)"
                 ) {
-                    HStack(spacing: 12) {
-                        StatBadge(label: "Replies", value: thread.replyCount.formatted())
-                        StatBadge(label: "Views", value: thread.viewCount.formatted())
-                        if let date = thread.postDate {
-                            StatBadge(label: "Posted", value: date.formatted(date: .abbreviated, time: .omitted))
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 12) {
+                            threadStats
+                            saveThreadButton
+                        }
+
+                        VStack(alignment: .leading, spacing: 12) {
+                            threadStats
+                            saveThreadButton
                         }
                     }
                 }
@@ -1167,6 +1331,26 @@ struct ThreadDetailView: View {
             errorMessage = error.localizedDescription
         }
     }
+
+    private var threadStats: some View {
+        HStack(spacing: 12) {
+            StatBadge(label: "Replies", value: thread.replyCount.formatted())
+            StatBadge(label: "Views", value: thread.viewCount.formatted())
+            if let date = thread.postDate {
+                StatBadge(label: "Posted", value: date.formatted(date: .abbreviated, time: .omitted))
+            }
+        }
+    }
+
+    private var saveThreadButton: some View {
+        Button {
+            appState.toggleSaved(savedItem)
+        } label: {
+            Label(isSaved ? "Saved" : "Save", systemImage: isSaved ? "bookmark.fill" : "bookmark")
+        }
+        .buttonStyle(.bordered)
+        .accessibilityLabel(isSaved ? "Remove thread from Saved" : "Save thread")
+    }
 }
 
 struct MediaDetailView: View {
@@ -1178,6 +1362,8 @@ struct MediaDetailView: View {
     @State private var playbackURL: URL?
     @State private var isLoading = false
     @State private var errorMessage: String?
+    private var savedItem: SavedItem { SavedItem(media: mediaItem) }
+    private var isSaved: Bool { appState.isSaved(savedItem) }
 
     init(media: XFMedia) {
         self.media = media
@@ -1230,10 +1416,18 @@ struct MediaDetailView: View {
 
                     MediaSectionShell(title: "Actions", subtitle: "Open the original asset, jump to playback, or inspect the thumbnail source.") {
                         VStack(alignment: .leading, spacing: 12) {
+                            Button {
+                                appState.toggleSaved(savedItem)
+                            } label: {
+                                Label(isSaved ? "Saved" : "Save", systemImage: isSaved ? "bookmark.fill" : "bookmark")
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .accessibilityLabel(isSaved ? "Remove media from Saved" : "Save media")
+
                             Link(destination: mediaItem.viewURL ?? mediaItem.mediaURL) {
                                 Label("Open In Browser", systemImage: "safari")
                             }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(.bordered)
 
                             if let playbackURL {
                                 Link(destination: playbackURL) {

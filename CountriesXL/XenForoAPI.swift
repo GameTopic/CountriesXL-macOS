@@ -675,6 +675,44 @@ struct XFMedia: Identifiable, Decodable, Hashable {
     var postedDate: Date?
     var updatedDate: Date?
 
+    init(
+        id: Int,
+        title: String,
+        mediaURL: URL,
+        thumbnailURL: URL? = nil,
+        viewURL: URL? = nil,
+        description: String? = nil,
+        username: String? = nil,
+        mediaType: String? = nil,
+        categoryID: Int? = nil,
+        categoryTitle: String? = nil,
+        albumID: Int? = nil,
+        albumTitle: String? = nil,
+        viewCount: Int? = nil,
+        commentCount: Int? = nil,
+        reactionScore: Int? = nil,
+        postedDate: Date? = nil,
+        updatedDate: Date? = nil
+    ) {
+        self.id = id
+        self.title = title
+        self.mediaURL = mediaURL
+        self.thumbnailURL = thumbnailURL
+        self.viewURL = viewURL
+        self.description = description
+        self.username = username
+        self.mediaType = mediaType
+        self.categoryID = categoryID
+        self.categoryTitle = categoryTitle
+        self.albumID = albumID
+        self.albumTitle = albumTitle
+        self.viewCount = viewCount
+        self.commentCount = commentCount
+        self.reactionScore = reactionScore
+        self.postedDate = postedDate
+        self.updatedDate = updatedDate
+    }
+
     enum CodingKeys: String, CodingKey {
         case id = "media_id"
         case title
