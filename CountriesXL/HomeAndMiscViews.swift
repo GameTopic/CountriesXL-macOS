@@ -383,13 +383,19 @@ struct SavedItemsView: View {
                     }
                 }
 
-                Picker("Saved Type", selection: $selectedKind) {
-                    Text("All").tag(nil as SavedItemKind?)
-                    ForEach(SavedItemKind.allCases) { kind in
-                        Label(kind.title, systemImage: kind.systemImage).tag(kind as SavedItemKind?)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 12) {
+                        savedTypePicker
+                        CopyItemListButton(items: filteredItems)
+                            .buttonStyle(.bordered)
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        savedTypePicker
+                        CopyItemListButton(items: filteredItems)
+                            .buttonStyle(.bordered)
                     }
                 }
-                .pickerStyle(.segmented)
 
                 if filteredItems.isEmpty {
                     EmptyStateCard(
@@ -414,6 +420,16 @@ struct SavedItemsView: View {
             .padding(24)
         }
         .navigationTitle("Saved")
+    }
+
+    private var savedTypePicker: some View {
+        Picker("Saved Type", selection: $selectedKind) {
+            Text("All").tag(nil as SavedItemKind?)
+            ForEach(SavedItemKind.allCases) { kind in
+                Label(kind.title, systemImage: kind.systemImage).tag(kind as SavedItemKind?)
+            }
+        }
+        .pickerStyle(.segmented)
     }
 }
 
@@ -447,12 +463,18 @@ struct RecentItemsView: View {
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 12) {
                         recentTypePicker
+                        CopyItemListButton(items: filteredItems)
+                            .buttonStyle(.bordered)
                         clearRecentButton
                     }
 
                     VStack(alignment: .leading, spacing: 12) {
                         recentTypePicker
-                        clearRecentButton
+                        HStack(spacing: 12) {
+                            CopyItemListButton(items: filteredItems)
+                                .buttonStyle(.bordered)
+                            clearRecentButton
+                        }
                     }
                 }
 

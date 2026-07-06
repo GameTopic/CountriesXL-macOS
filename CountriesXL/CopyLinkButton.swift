@@ -15,7 +15,7 @@ struct CopyLinkButton: View {
 
     var body: some View {
         Button {
-            copy(url)
+            ClipboardWriter.copy(url.absoluteString)
             copied = true
             Task {
                 try? await Task.sleep(for: .seconds(1.5))
@@ -26,13 +26,49 @@ struct CopyLinkButton: View {
         }
         .accessibilityLabel(copied ? copiedTitle : title)
     }
+}
 
-    private func copy(_ url: URL) {
+struct CopyItemListButton: View {
+    let items: [SavedItem]
+    var title: String = "Copy List"
+    var copiedTitle: String = "Copied"
+
+    @State private var copied = false
+
+    private var exportText: String {
+        items.map { item in
+            if let url = item.shareURL {
+                return "- [\(item.title)](\(url.absoluteString))"
+            }
+
+            return "- \(item.title)"
+        }
+        .joined(separator: "\n")
+    }
+
+    var body: some View {
+        Button {
+            ClipboardWriter.copy(exportText)
+            copied = true
+            Task {
+                try? await Task.sleep(for: .seconds(1.5))
+                copied = false
+            }
+        } label: {
+            Label(copied ? copiedTitle : title, systemImage: copied ? "checkmark" : "doc.on.doc")
+        }
+        .disabled(items.isEmpty)
+        .accessibilityLabel(copied ? copiedTitle : title)
+    }
+}
+
+enum ClipboardWriter {
+    static func copy(_ text: String) {
         #if os(macOS)
         NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(url.absoluteString, forType: .string)
+        NSPasteboard.general.setString(text, forType: .string)
         #elseif canImport(UIKit)
-        UIPasteboard.general.string = url.absoluteString
+        UIPasteboard.general.string = text
         #endif
     }
 }
