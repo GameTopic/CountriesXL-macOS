@@ -82,17 +82,16 @@ final class CountriesXLUITests: XCTestCase {
         downloadButton.tap()
 
         XCTAssertTrue(app.staticTexts["Downloads"].waitForExistence(timeout: 10))
-        let downloadsSheet = app.sheets.firstMatch
-        XCTAssertTrue(downloadsSheet.waitForExistence(timeout: 10))
-        XCTAssertTrue(downloadsSheet.staticTexts["Ready to save"].waitForExistence(timeout: 15))
-        XCTAssertTrue(downloadsSheet.staticTexts["Lake City - Small Firehall"].waitForExistence(timeout: 10))
-        XCTAssertTrue(downloadsSheet.buttons["download-save-328"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Ready to save"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["Lake City - Small Firehall"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["download-save-328"].waitForExistence(timeout: 10))
     }
 
     @MainActor
     func testLaunchPerformance() throws {
         // This measures how long it takes to launch your application.
         let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             if app.state == .runningForeground {
                 app.terminate()

@@ -126,12 +126,15 @@ struct ContentView: View {
                         fallbackRelatedResources: context.fallbackRelatedResources
                     )
                     .environmentObject(appState)
+                    .environmentObject(savedItems)
                 case .media(let media):
                     MediaDetailView(media: media)
                         .environmentObject(appState)
+                        .environmentObject(savedItems)
                 case .thread(let thread):
                     ThreadDetailView(thread: thread)
                         .environmentObject(appState)
+                        .environmentObject(savedItems)
                 }
             }
         }
